@@ -52,7 +52,7 @@ import pyspark.pandas as ps
 
 USERNAME = os.environ["PROJECT_OWNER"]
 DBNAME = "BNK_MLOPS_HOL_"+USERNAME
-CONNECTION_NAME = "paul-november-aw-dl"
+CONNECTION_NAME = "mlops-aw-dl"
 
 DATE = date.today()
 EXPERIMENT_NAME = "xgb-cc-fraud-{0}".format(USERNAME)
@@ -70,8 +70,8 @@ X_train, X_test, y_train, y_test = train_test_split(df.drop("fraud_trx", axis=1)
 
 with mlflow.start_run():
 
-    model = XGBClassifier(use_label_encoder=False, eval_metric="logloss")
-
+    #model = XGBClassifier(use_label_encoder=False, eval_metric="logloss")
+    model = XGBClassifier(use_label_encoder=False, max_depth=4, eval_metric="logloss")
     # Step 1: cambiar test_size linea 69 y recorrer
     # Step 2: cambiar linea 74, agregar linea 97, y recorrer
       # linea 75: model = XGBClassifier(use_label_encoder=False, max_depth=4, eval_metric="logloss")
@@ -91,6 +91,8 @@ with mlflow.start_run():
 
     mlflow.log_param("accuracy", accuracy)
     mlflow.log_param("test_size", test_size)
+    
+    mlflow.log_param("max_depth", 4)
 
     # Step 2:
     # Step 3:

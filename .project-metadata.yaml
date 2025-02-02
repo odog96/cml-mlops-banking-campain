@@ -1,0 +1,27 @@
+name: ML Ops Hands on Lab 
+description: Prototype to demonstrate machine learning operations in production
+author: Cloudera Inc.
+prototype_version: 2.0
+date: "2025-02-13"
+
+environment_variables:
+  CONNECTION_NAME:
+    default: mlops-aw-dl
+    description: >-
+      datalake connection name
+
+runtimes:
+  - editor: Workbench
+    kernel: Python 3.9
+    edition: Standard
+    version: 2024.10
+    addons: ["Spark 3.3.0 - CDE 1.22.0"]
+    
+tasks:
+  - type: run_session
+    name: Install dependencies
+    script: install-dependencies.py
+    short_summary: >-
+      Install dependencies
+    cpu: 1
+    memory: 2
