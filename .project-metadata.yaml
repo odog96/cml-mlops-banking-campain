@@ -9,12 +9,12 @@ date: "2025-02-13"
 #     default: "mlops-aw-dl"
 #     description: "datalake connection name"
 
-runtimes:
-  - editor: Workbench
-    kernel: Python 3.9
-    edition: Standard
-    version: 2024.10
-    addons: ["Spark 3.3.0 - CDE 1.22.0"]
+# runtimes:
+#   - editor: Workbench
+#     kernel: Python 3.9
+#     edition: Standard
+#     version: 2024.10
+#     addons: ["Spark 3.3.0 - CDE 1.22.0"]
     
 # tasks:
 #   - type: run_session
