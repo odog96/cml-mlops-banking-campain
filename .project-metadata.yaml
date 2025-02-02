@@ -6,9 +6,8 @@ date: "2025-02-13"
 
 environment_variables:
   CONNECTION_NAME:
-    default: mlops-aw-dl
-    description: >-
-      datalake connection name
+    default: "mlops-aw-dl"
+    description: "datalake connection name"
 
 runtimes:
   - editor: Workbench
@@ -21,7 +20,6 @@ tasks:
   - type: run_session
     name: Install dependencies
     script: install-dependencies.py
-    short_summary: >-
-      Install dependencies
-    cpu: 1
-    memory: 2
+    short_summary: Install dependencies
+    cpu: 2
+    memory: 4
