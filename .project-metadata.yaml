@@ -14,7 +14,15 @@ environment_variables:
   CONNECTION_NAME:
     default: "mlops-aw-dl"
     description: "datalake connection name"
-
+tasks:
+  - type: run_session
+    name: Install Dependencies
+    script: install-dependencies.py
+    short_summary: Install Dependencies
+    kernel: python3
+    cpu: 2
+    memory: 12
+    
 # name: ML Ops Hands on Lab 
 # description: Prototype to demonstrate machine learning operations in production
 # author: Cloudera Inc.
