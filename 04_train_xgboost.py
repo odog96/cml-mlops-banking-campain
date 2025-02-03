@@ -52,7 +52,7 @@ import pyspark.pandas as ps
 # SET USER VARIABLES
 USERNAME = os.environ["PROJECT_OWNER"]
 DBNAME = "BNK_MLOPS_HOL_"+USERNAME
-CONNECTION_NAME = "ita-jul-aw-dl"
+CONNECTION_NAME = os.environ["CONNECTION_NAME"]
 
 # SET MLFLOW EXPERIMENT NAME
 EXPERIMENT_NAME = "xgb-cc-fraud-{0}".format(USERNAME)
