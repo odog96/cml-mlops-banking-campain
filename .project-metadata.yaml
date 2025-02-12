@@ -19,7 +19,7 @@ runtimes:
     kernel: Python 3.9
     edition: Standard
     version: "2024.10"
-    addons: ['Spark 3.3.0 - CDE 1.22.0']
+    addons: [Spark 3.3.0 - CDE 1.22.0]
     
 tasks:
   - type: run_session
