@@ -54,11 +54,22 @@ projectId = os.environ['CDSW_PROJECT_ID']
 username = os.environ["PROJECT_OWNER"]
 experimentName = f"xgb-bank-marketing-{USERNAME}"
 
-# MLflow experiment handling (not directly related to CML API)
+# Replace with this code to get the run with highest test accuracy:
 experimentId = mlflow.get_experiment_by_name(experimentName).experiment_id
 runsDf = mlflow.search_runs(experimentId, run_view_type=1)
-experimentId = runsDf.iloc[-1]['experiment_id']
-experimentRunId = runsDf.iloc[-1]['run_id']
+
+# Check if 'metrics.test_accuracy' column exists
+if 'metrics.test_accuracy' in runsDf.columns:
+    # Sort by test accuracy in descending order and get the top run
+    best_run = runsDf.sort_values('metrics.test_accuracy', ascending=False).iloc[0]
+    experimentId = best_run['experiment_id']
+    experimentRunId = best_run['run_id']
+    print(f"Selected run {experimentRunId} with test accuracy: {best_run['metrics.test_accuracy']}")
+else:
+    # Fallback to the most recent run if test_accuracy metric doesn't exist
+    print("Warning: No 'test_accuracy' metric found. Selecting most recent run instead.")
+    experimentId = runsDf.iloc[-1]['experiment_id']
+    experimentRunId = runsDf.iloc[-1]['run_id']
 
 # Model deployment using a custom class
 deployment = ModelDeployment(client, projectId, username, experimentName, experimentId)
