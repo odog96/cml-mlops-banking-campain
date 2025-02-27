@@ -132,7 +132,7 @@ class ModelDeployment():
         try:
             # Create a model.
             api_response = self.client.create_model(CreateModelRequest, projectId)
-            pprint(api_response)
+            print(api_response)
         except ApiException as e:
             print("Exception when calling CMLServiceApi->create_model: %s\n" % e)
 
