@@ -173,13 +173,13 @@ class ModelReDeployment():
         }
 
 # Main script execution
-username = os.environ["PROJECT_OWNER"]
-DBNAME = "bnk_mlops_hol_ozarate"  # Update with your actual database name
-CONNECTION_NAME = os.environ.get("CONNECTION_NAME", "your_spark_connection")
+USERNAME = os.environ["PROJECT_OWNER"]
+DBNAME = "BNK_MLOPS_HOL_{}".format(USERNAME)
+CONNECTION_NAME = os.environ["CONNECTION_NAME"]
 projectId = os.environ['CDSW_PROJECT_ID']
 
 # Set MLflow experiment name for the incremental model
-experimentName = f"xgb-bank-marketing-incremental-{username}"
+experimentName = f"xgb-bank-marketing-incremental-{USERNAME}"
 
 # Get the run with highest test accuracy
 print(f"Fetching experiment: {experimentName}")
@@ -200,10 +200,10 @@ else:
     experimentRunId = runsDf.iloc[-1]['run_id']
 
 modelPath = "artifacts"
-modelName = "bank-promo-" + username
+modelName = "bank-promo-" + USERNAME
 
 print(f"Setting up redeployment for model: {modelName}")
-deployment = ModelReDeployment(projectId, username)
+deployment = ModelReDeployment(projectId, USERNAME)
 
 try:
     # Get existing model deployment details

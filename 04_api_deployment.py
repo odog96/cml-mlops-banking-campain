@@ -50,8 +50,9 @@ client = cmlapi.default_client()
 client.list_projects()
 
 USERNAME = os.environ["PROJECT_OWNER"]
+DBNAME = "BNK_MLOPS_HOL_{}".format(USERNAME)
+CONNECTION_NAME = os.environ["CONNECTION_NAME"]
 projectId = os.environ['CDSW_PROJECT_ID']
-username = os.environ["PROJECT_OWNER"]
 experimentName = f"xgb-bank-marketing-{USERNAME}"
 
 # Replace with this code to get the run with highest test accuracy:
@@ -72,10 +73,10 @@ else:
     experimentRunId = runsDf.iloc[-1]['run_id']
 
 # Model deployment using a custom class
-deployment = ModelDeployment(client, projectId, username, experimentName, experimentId)
+deployment = ModelDeployment(client, projectId, USERNAME, experimentName, experimentId)
 
 modelPath = "artifacts"
-modelName = "bank-promo-" + username
+modelName = "bank-promo-" + USERNAME
 
 # Register model from experiment run
 registeredModelResponse = deployment.registerModelFromExperimentRun(modelName, experimentId, experimentRunId, modelPath)
