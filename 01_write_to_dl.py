@@ -104,17 +104,17 @@ class BankDataGen:
         print(f"Ingested raw data into {self.dbname}.BANK_MARKETING_{self.username}")
 
 def main():
-    username = os.environ["PROJECT_OWNER"] # Updated to your username
-    dbname = "BNK_MLOPS_HOL_"+username    # Your database name
-    connectionName = os.environ["CONNECTION_NAME"] # Replace with your actual connection name
+    USERNAME = os.environ["PROJECT_OWNER"]
+    DBNAME = "BNK_MLOPS_HOL_{}".format(USERNAME)
+    CONNECTION_NAME = os.environ["CONNECTION_NAME"]
     
-    bank_gen = BankDataGen(username, dbname, connectionName)
+    bank_gen = BankDataGen(USERNAME, DBNAME, CONNECTION_NAME)
     spark = bank_gen.createSparkConnection()
-    spark.conf.set("spark.sql.catalog.{}.warehouse".format(dbname), "s3://your-bucket/bank-marketing/raw/")
+    spark.conf.set("spark.sql.catalog.{}.warehouse".format(DBNAME), "s3://your-bucket/bank-marketing/raw/")
     bank_gen.createDatabase(spark)
     bank_gen.ingestRawData(spark, local_path="data/bank-full.csv")
     bank_gen.validateTable(spark)
-    spark.sql(f"SELECT * FROM {dbname}.BANK_MARKETING_{username} LIMIT 5").show()
+    spark.sql(f"SELECT * FROM {DBNAME}.BANK_MARKETING_{USERNAME} LIMIT 5").show()
     spark.stop()
 
 if __name__ == '__main__':

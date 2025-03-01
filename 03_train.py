@@ -51,9 +51,9 @@ from pyspark.sql.functions import col
 from pyspark.ml.feature import StringIndexer
 
 # Setup
-USERNAME = os.environ.get("PROJECT_OWNER", "ozarate")
-DBNAME = "bnk_mlops_hol_ozarate"
-CONNECTION_NAME = os.environ.get("CONNECTION_NAME", "your_spark_connection")
+USERNAME = os.environ["PROJECT_OWNER"]
+DBNAME = "BNK_MLOPS_HOL_{}".format(USERNAME)
+CONNECTION_NAME = os.environ["CONNECTION_NAME"]
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 EXPERIMENT_NAME = f"xgb-bank-marketing-{USERNAME}"
 
@@ -63,8 +63,8 @@ mlflow.set_experiment(EXPERIMENT_NAME)
 conn = cmldata.get_connection(CONNECTION_NAME)
 spark = conn.get_spark_session()
 
-# Load raw table (since BANK_MARKETING_SELECTED_ozarate might be missing or malformed)
-df_spark = spark.table(f"{DBNAME}.bank_marketing_ozarate")
+# Load raw table
+df_spark = spark.table(f"{DBNAME}.BANK_MARKETING_{USERNAME}")
 
 # Define features
 numerical_cols = ["age", "balance", "day", "duration", "campaign", "pdays", "previous"]

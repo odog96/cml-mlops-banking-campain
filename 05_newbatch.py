@@ -47,16 +47,16 @@ import cml.data_v1 as cmldata
 from pyspark.sql.functions import col, rand, expr
 
 # Setup
-USERNAME = os.environ.get("PROJECT_OWNER", "ozarate")
-DBNAME = "bnk_mlops_hol_ozarate" 
-CONNECTION_NAME = os.environ.get("CONNECTION_NAME", "your_spark_connection")
+USERNAME = os.environ["PROJECT_OWNER"]
+DBNAME = "BNK_MLOPS_HOL_{}".format(USERNAME)
+CONNECTION_NAME = os.environ["CONNECTION_NAME"]
 
 # Connect to Spark
 conn = cmldata.get_connection(CONNECTION_NAME)
 spark = conn.get_spark_session()
 
 print("Loading original data from Iceberg table...")
-table_name = f"{DBNAME}.bank_marketing_ozarate"
+table_name = f"{DBNAME}.BANK_MARKETING_{USERNAME}"
 df_spark = spark.table(table_name)
 
 # Store current record count for verification
