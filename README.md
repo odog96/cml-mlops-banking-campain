@@ -14,7 +14,7 @@ Before starting, ensure you have:
 
 ## Setup
 
-### 1. Create a CML Session
+### Create a CML Session
 
 1. Open the CML workspace
 2. Create a new session with:
@@ -25,13 +25,6 @@ Before starting, ensure you have:
    - **Add-on**: Spark 3.3
    - **Resource Profile**: 2 vCPU / 4 GiB Memory (or larger if needed)
 
-### 2. Install Dependencies
-
-Once your session is running, install the required packages:
-
-```python
-!pip install -r requirements.txt
-```
 
 ## Step-by-Step Workflow
 
