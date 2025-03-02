@@ -36,7 +36,7 @@ This script downloads the UCI Bank Marketing dataset, which contains information
 
 **How to run:**
 1. Open `00_download.py` in your CML session
-2. Click "Run" to execute the script
+2. Open a terminal window and run by typing `python 00_download.py`
 
 **Key components:**
 - Downloads a zip file from UCI repository
@@ -54,8 +54,8 @@ This script moves the downloaded dataset to a data lake using Apache Iceberg for
 
 **How to run:**
 1. Open `01_write_to_dl.py` in your CML session
-2. Update the `CONNECTION_NAME` variable as instructed by your lab leader
-3. Click "Run" to execute the script
+2. In a terminal window and run by typing `python 01_write_to_dl.py`
+
 
 **Key components:**
 - Uses CML Data Connections to establish a connection to the data lake
@@ -92,7 +92,7 @@ This script trains various classification models to predict whether a customer w
 
 **How to run:**
 1. Open `03_train.py` in your CML session
-2. Click "Run" to execute the script
+2. In a terminal window and run by typing `python 03_train.py`
 
 **Key components:**
 - Reads data from the Iceberg table
@@ -111,7 +111,7 @@ This script selects the best model based on test accuracy, registers it to the M
 
 **How to run:**
 1. Open `04_api_deployment.py` in your CML session
-2. Click "Run" to execute the script
+2. In a terminal window and run by typing `python 04_api_deployment.py`
 
 **Key components:**
 - Queries the MLflow experiment to find the best-performing model
@@ -211,6 +211,10 @@ This script selects the best model from the retraining experiments and redeploys
    ```
 4. Click "Create Job"
 
+5. Once you created all three jobs, manually trigger the New Batch job. Monitor execution in the Job History tab, and observe that once it is complete the next job in the MLOps pipeline, Retrain XGBoost, is triggered, and finally the last job, API Redeployment, is executed.
+
+
+
 **Key components:**
 - Selects the best-performing model from retraining
 - Updates the model in the registry
@@ -228,7 +232,7 @@ This script simulates client applications making calls to the deployed model end
 
 **How to run:**
 1. Open `08_model_simulation.py` in your CML session
-2. Click "Run" to execute the script
+2. In a terminal window and run by typing `python 08_model_simulation.py`
 
 **Key components:**
 - Generates synthetic requests to the model API
