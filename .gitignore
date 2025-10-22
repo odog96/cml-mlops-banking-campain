@@ -84,3 +84,31 @@ data/processed/
 .claude.json
 .claude.json.backup
 .claude/
+
+# Data folder - keep structure, ignore contents
+data/*
+!data/.gitkeep
+
+# Module data folders - keep structure, ignore contents
+module1/data/*
+!module1/data/.gitkeep
+module2/data/*
+!module2/data/.gitkeep
+module3/data/*
+!module3/data/.gitkeep
+
+# Mac OS files
+__MACOSX/
+.DS_Store
+
+# Conda environments
+.conda/
+
+# R files
+.Rhistory
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Image folders (if not needed)
+img/
