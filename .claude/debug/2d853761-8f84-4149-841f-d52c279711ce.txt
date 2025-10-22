@@ -1,0 +1,192 @@
+[ERROR] Failed to save config with lock: Error: ENOENT: no such file or directory, lstat '/home/cdsw/.claude.json'
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305881661
+[DEBUG] Setting permissions for new file: 600
+[DEBUG] Temp file written successfully, size: 103 bytes
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305881661 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305881784
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 183 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305881784 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305881932
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 220 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305881932 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+[DEBUG] Creating shell snapshot for bash (/bin/bash)
+[DEBUG] Looking for shell config file: /home/cdsw/.bashrc
+[DEBUG] Shell config file not found: /home/cdsw/.bashrc, creating snapshot with Claude Code defaults only
+[DEBUG] Snapshots directory: /home/cdsw/.claude/shell-snapshots
+[DEBUG] Creating snapshot at: /home/cdsw/.claude/shell-snapshots/snapshot-bash-1760305882273-lf0h30.sh
+[DEBUG] Shell binary exists: true
+[DEBUG] Execution timeout: 10000ms
+[DEBUG] Writing to temp file: /home/cdsw/.claude/todos/2d853761-8f84-4149-841f-d52c279711ce-agent-2d853761-8f84-4149-841f-d52c279711ce.json.tmp.971.1760305882325
+[DEBUG] Temp file written successfully, size: 2 bytes
+[DEBUG] Renaming /home/cdsw/.claude/todos/2d853761-8f84-4149-841f-d52c279711ce-agent-2d853761-8f84-4149-841f-d52c279711ce.json.tmp.971.1760305882325 to /home/cdsw/.claude/todos/2d853761-8f84-4149-841f-d52c279711ce-agent-2d853761-8f84-4149-841f-d52c279711ce.json
+[DEBUG] File /home/cdsw/.claude/todos/2d853761-8f84-4149-841f-d52c279711ce-agent-2d853761-8f84-4149-841f-d52c279711ce.json written atomically
+[DEBUG] Registered 0 hooks from 0 plugins
+[DEBUG] Loading skills from directories: managed=/etc/claude-code/.claude/skills, user=/home/cdsw/.claude/skills, project=/home/cdsw/.claude/skills
+[DEBUG] Total plugin agents loaded: 0
+[DEBUG] Loaded 0 skills total (managed: 0, user: 0, project: 0)
+[DEBUG] Total plugin commands loaded: 0
+[DEBUG] Total plugin skills loaded: 0
+[DEBUG] Ripgrep first use test: PASSED (mode=builtin, path=/home/cdsw/.nvm/versions/node/v22.20.0/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg)
+[DEBUG] Shell snapshot created successfully (600 bytes)
+[ERROR] Error: Error: Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+    at file:///home/cdsw/.nvm/versions/node/v22.20.0/lib/node_modules/@anthropic-ai/claude-code/cli.js:432:3020
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305882749
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 302 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305882749 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305882872
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 332 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305882872 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305883252
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30000 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305883252 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] rg error (signal=undefined, code=ABORT_ERR, stderr: ), 18085 results
+[ERROR] AbortError: AbortError: The operation was aborted
+    at abortChildProcess (node:child_process:750:27)
+    at AbortSignal.onAbortListener (node:child_process:820:7)
+    at [nodejs.internal.kHybridDispatch] (node:internal/event_target:827:20)
+    at AbortSignal.dispatchEvent (node:internal/event_target:762:26)
+    at runAbort (node:internal/abort_controller:486:10)
+    at abortSignal (node:internal/abort_controller:457:3)
+    at AbortController.abort (node:internal/abort_controller:505:5)
+    at Timeout._onTimeout (file:///home/cdsw/.nvm/versions/node/v22.20.0/lib/node_modules/@anthropic-ai/claude-code/cli.js:3572:4701)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7)
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305890812
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30000 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305890812 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305890937
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30000 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305890937 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] BigQuery metrics exporter flush complete
+[DEBUG] Telemetry flushed successfully
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305926843
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30000 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305926843 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305926967
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30000 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305926967 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305927187
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30270 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305927187 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305927490
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30389 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305927490 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305927621
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30427 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305927621 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305927862
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30450 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305927862 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Getting matching hook commands for Notification with query: undefined
+[DEBUG] Found 0 hook matchers in settings
+[DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305955688
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30521 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305955688 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305960781
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30552 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305960781 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305960901
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30572 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305960901 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Executing hooks for SessionStart:startup
+[DEBUG] Getting matching hook commands for SessionStart with query: startup
+[DEBUG] Found 0 hook matchers in settings
+[DEBUG] Matched 0 unique hooks for query "startup" (0 before deduplication)
+[DEBUG] Found 0 hook commands to execute
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305961150
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30572 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305961150 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305961267
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 30608 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305961267 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305961381
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 31064 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305961381 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] AutoUpdaterWrapper: Installation type: npm-global, using native: false
+[DEBUG] performStartupChecks called, ENABLE_PLUGINS=true
+[DEBUG] Trust not accepted for current directory - skipping plugin installations
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305961538
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 31169 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305961538 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Loaded plugins - Enabled: 0, Disabled: 0, Commands: 0, Agents: 0, Errors: 0
+[DEBUG] Slash commands included in SlashCommand tool:
+[DEBUG] Writing to temp file: /home/cdsw/.claude.json.tmp.971.1760305961836
+[DEBUG] Preserving file permissions: 100600
+[DEBUG] Temp file written successfully, size: 31169 bytes
+[DEBUG] Applied original permissions to temp file
+[DEBUG] Renaming /home/cdsw/.claude.json.tmp.971.1760305961836 to /home/cdsw/.claude.json
+[DEBUG] File /home/cdsw/.claude.json written atomically
+[DEBUG] Writing to temp file: /home/cdsw/.claude/settings.json.tmp.971.1760306034885
+[DEBUG] Temp file written successfully, size: 36 bytes
+[DEBUG] Renaming /home/cdsw/.claude/settings.json.tmp.971.1760306034885 to /home/cdsw/.claude/settings.json
+[DEBUG] File /home/cdsw/.claude/settings.json written atomically
+[DEBUG] Metrics opt-out API response: enabled=true
+[DEBUG] BigQuery metrics exported successfully
+[DEBUG] API Response: {
+  "accepted_count": 2,
+  "rejected_count": 0
+}

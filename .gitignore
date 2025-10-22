@@ -1,0 +1,86 @@
+# Python
+*.py[cod]
+*$py.class
+__pycache__/
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# Data files
+*.csv
+*.tsv
+*.dat
+*.data
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.pickle
+*.pkl
+*.joblib
+
+# Model files
+*.pth
+*.ckpt
+*.pt
+*.model
+*.weights
+*.pb
+*.onnx
+*.tflite
+models/
+checkpoints/
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cloudera/MLflow
+mlruns/
+.cdsw/
+.mlflow/
+
+# Large data directories (customize as needed)
+data/raw/
+data/processed/
+
+# User/system cache and config (add to existing .gitignore)
+.bash_history
+.cache/
+.conda/
+.ipython/
+.jupyter/
+.local/
+.npm/
+.nvm/
+.pip/
+.Rprofile
+.claude.json
+.claude.json.backup
+.claude/

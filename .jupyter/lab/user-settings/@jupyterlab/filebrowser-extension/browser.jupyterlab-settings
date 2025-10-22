@@ -1,0 +1,10 @@
+{
+    // File Browser
+    // @jupyterlab/filebrowser-extension:browser
+    // File Browser settings.
+    // *****************************************
+
+    // Show hidden files
+    // Whether to show hidden files. The server parameter `ContentsManager.allow_hidden` must be set to `True` to display hidden files.
+    "showHiddenFiles": true
+}
