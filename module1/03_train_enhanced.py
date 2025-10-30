@@ -43,18 +43,37 @@ from module1.utils import preprocess_for_training, split_data
 
 def setup_mlflow():
     """Initialize MLflow experiment"""
-    mlflow.set_tracking_uri(MLFLOW_CONFIG["tracking_uri"])
     experiment_name = MLFLOW_CONFIG["experiment_name"]
-    mlflow.set_experiment(experiment_name)
-    
-    print(f"MLflow tracking URI: {mlflow.get_tracking_uri()}")
-    print(f"Experiment: {experiment_name}")
+
+    # Try CML tracking server first, fallback to local file storage
+    try:
+        tracking_uri = MLFLOW_CONFIG["tracking_uri"]
+        mlflow.set_tracking_uri(tracking_uri)
+
+        # Test if tracking URI works by trying to set experiment
+        mlflow.set_experiment(experiment_name)
+
+        print(f"MLflow tracking URI: {mlflow.get_tracking_uri()}")
+        print(f"Experiment: {experiment_name}")
+    except Exception as e:
+        print(f"Warning: CML tracking server not available ({e})")
+        print("Falling back to local file-based MLflow tracking...")
+
+        # Use local file-based tracking
+        mlflow.set_tracking_uri("file:./mlruns")
+        mlflow.set_experiment(experiment_name)
+
+        print(f"MLflow tracking URI: {mlflow.get_tracking_uri()}")
+        print(f"Experiment: {experiment_name}")
+        print("\nNOTE: Using local MLflow tracking. To view results:")
+        print("  Run: mlflow ui --backend-store-uri file:./mlruns")
+
     print("-" * 80)
 
 
 def load_data():
     """Load the engineered dataset"""
-    data_path = "data/bank_marketing_engineered.csv"
+    data_path = "/home/cdsw/data/bank_marketing_engineered.csv"
     
     if not os.path.exists(data_path):
         raise FileNotFoundError(

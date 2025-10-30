@@ -1,234 +1,313 @@
-# Module 1: Data Science Fundamentals
+# Module 2: MLOps - Production Model Lifecycle
 
-## Overview
-This module introduces the core data science workflow on Cloudera AI, focusing on the fundamentals without the complexity of distributed computing frameworks. You'll work through a complete ML pipeline from data ingestion to model deployment.
+**Focus:** Model monitoring, drift detection, and automated retraining in production
 
-You're a data scientist at a Portuguese bank, and your manager just dropped a challenge on your desk: the marketing team is burning through budget on phone campaigns with an 11% success rate. They're calling everyone, and it's not working. Your job? Build a machine learning model that predicts which customers are likely to subscribe to a term deposit before the call is made.
-The stakes are real. If your model works, the bank saves money by targeting the right customers. If it doesn't, you'll be explaining to executives why AI failed them. You have 41,188 historical records from past campaigns between 2008-2010. Each record tells a story: customer demographics, their relationship with the bank, past campaign responses, and whether they said "yes" or "no." Your first task is straightforward: explore this data, engineer features that matter, build a model, and deploy it. But here's the catch - this isn't a Kaggle competition. This model needs to work in production, which means you'll need to think beyond accuracy scores.
-In future modules, we'll tackle the hard parts of production ML: What happens when customer behavior changes? How do we detect when the model starts failing? When do we retrain? Welcome to the real world of MLOps - where building the model is just the beginning.
+---
 
-**Duration:** ~45-60 minutes
+## 📚 What You'll Learn
 
-## Learning Objectives
 By the end of this module, you will:
-- Understand how to ingest data into the data lake
-- Perform exploratory data analysis using Pandas
-- Apply feature engineering techniques based on domain insights
-- Track experiments systematically with MLflow
-- Compare model variants to measure improvement
-- Deploy models as REST APIs
-
-## Prerequisites
-- Cloudera AI workspace access
-- Python 3.10 runtime with Standard edition
-- Basic Python and ML knowledge
-
-## Setup
-
-### 1. Create CML Session
-```
-Editor: JupyterLab
-Kernel: Python 3.10
-Edition: Standard
-Version: 2025.01
-Add-on: Spark 3.3 (for data lake writes only)
-Resource Profile: 2 vCPU / 4 GiB Memory
-```
-
-### 2. Install Dependencies
-```bash
-pip install scikit-learn xgboost mlflow pandas numpy matplotlib seaborn scipy
-```
-
-### 3. Set Environment Variables (if needed)
-```bash
-export DATA_LAKE_NAME="your-datalake-connection"
-```
-
-## Module Structure
-
-### Step 1: Data Ingestion (`01_ingest_data.py`)
-**What it does:**
-- Downloads UCI Bank Marketing dataset
-- Performs initial data inspection
-- Writes data to Iceberg table in the data lake
-
-**Key concepts:**
-- Direct data ingestion patterns
-- Using Spark for write operations (leveraging Iceberg benefits)
-- Data validation and sanity checks
-
-**Run:**
-```bash
-python 01_ingest_data.py
-```
-
-**Expected output:**
-- CSV file downloaded to `data/` directory
-- Data written to `default.bank_marketing` table
-- Summary statistics displayed
+- Detect when your model's predictions become less reliable (data drift)
+- Monitor model performance in production environments
+- Implement automated retraining pipelines
+- Make data-driven decisions about when and how to retrain
+- Version and redeploy models safely
 
 ---
 
-### Step 2: EDA & Feature Engineering (`02_eda_feature_engineering.ipynb`)
-**What it does:**
-- Reads data from lake using Pandas (no Spark for analysis)
-- Explores distributions, correlations, and patterns
-- Engineers a new feature: **Customer Engagement Score**
-- Validates the feature's predictive power
+## 🎯 Module Overview
 
-**Key concepts:**
-- Data scientists prefer Pandas for interactive analysis
-- Feature engineering combines domain knowledge with data insights
-- Statistical validation of new features
+**The Challenge:** Your model was trained on data from 2008-2010, but customer behavior changes over time. How do you know when to retrain?
 
-**The Engagement Score:**
-Combines multiple signals into a single metric:
-- Current campaign effort (30%)
-- Historical responsiveness (30%)
-- Contact recency (20%)
-- Overall contact history (20%)
+**The Solution:** Monitor for drift → Detect degradation → Retrain automatically → Redeploy safely
 
-**Run:**
-Open the notebook in JupyterLab and execute cells sequentially.
+### Real-World Scenario
+Imagine your bank marketing model is deployed. Over 6 months:
+- Customer demographics shift (aging population)
+- Contact preferences change (mobile vs. landline)
+- Economic conditions evolve
+- Campaign timing strategies differ
 
-**Expected insights:**
-- Dataset is imbalanced (~11% positive class)
-- Duration is strongest single predictor
-- High engagement customers convert 3-4x more than low engagement
-- New feature is statistically significant (p < 0.001)
+**Question:** Should you retrain with only new data, or combine old + new?
 
 ---
 
-### Step 3: Model Training (`03_train_with_mlflow.py`)
-**What it does:**
-- Trains multiple XGBoost model variants
-- Compares baseline vs. engineered features
-- Performs hyperparameter tuning
-- Tracks everything in MLflow
+## 📁 Module Files
 
-**Experiments conducted:**
-1. **Baseline:** Without engagement score
-2. **Engineered:** With engagement score
-3. **Tuned:** Multiple hyperparameter variants
-
-**Key concepts:**
-- MLflow tracks all experiments automatically
-- Systematic comparison reveals feature impact
-- Best practices for experiment organization
-
-**Run:**
-```bash
-python 03_train_with_mlflow.py
-```
-
-**View results:**
-```bash
-mlflow ui
-# Open http://localhost:5000
-```
-
-**Expected results:**
-- 6+ experiment runs logged
-- Measurable improvement from feature engineering
-- Best model identified by ROC-AUC
+| File | Purpose | When to Run |
+|------|---------|-------------|
+| `01_simulate_time_passage.py` | Generate new data with realistic drift | Step 1 |
+| `02_drift_detection.py` | Analyze drift using Evidently AI | Step 2 |
+| `03_retrain_pipeline.py` | Automated retraining with data mixing | Step 3 |
+| `04_redeploy_model.py` | Version and deploy updated model | Step 4 |
+| `drift_config.yaml` | Monitoring thresholds and settings | Reference |
 
 ---
 
-### Step 4: Model Deployment (`04_deploy_model.py`)
+## 🚀 Step-by-Step Guide
+
+### Step 1: Simulate Production Data (Time Passage)
+
+**Run:** `python module2/01_simulate_time_passage.py`
+
 **What it does:**
-- Queries MLflow for best model
-- Registers model in registry
-- Creates API serving code
-- (Optionally) Deploys to CML
+- Generates 6 months of new customer data
+- Introduces realistic drift patterns:
+  - **Age drift:** Customer base ages by ~2 years on average
+  - **Contact method drift:** Shift from landline to mobile (20% → 35%)
+  - **Economic drift:** Interest rates and employment indicators change
+  - **Seasonal drift:** Different campaign timing
 
-**Key concepts:**
-- Automated model selection
-- Model versioning and lineage
-- Production deployment patterns
+**Output:** `data/new_production_data.csv` (~5,000 new records)
 
-**Run:**
-```bash
-python 04_deploy_model.py
+**💡 Look for:** Summary statistics showing how distributions changed
+
+---
+
+### Step 2: Detect Drift
+
+**Run:** `python module2/02_drift_detection.py`
+
+**What it does:**
+- Compares training data vs. new production data
+- Uses **Evidently AI** to detect:
+  - Feature drift (did input distributions change?)
+  - Target drift (is the outcome rate different?)
+  - Model performance degradation
+- Generates HTML reports and metrics
+
+**Key Metrics:**
+- **Drift Score:** 0-1 scale (>0.3 = significant drift)
+- **Feature Stability:** Which features changed most?
+- **Prediction Drift:** Is your model's output distribution different?
+
+**Output:** 
+- `outputs/drift_report.html` (visual report)
+- `outputs/drift_metrics.json` (programmatic metrics)
+
+**💡 Decision Point:** If drift detected, proceed to retraining
+
+---
+
+### Step 3: Retrain the Model
+
+**Run:** `python module2/03_retrain_pipeline.py`
+
+**What it does:**
+- Implements **3 retraining strategies** (you choose):
+
+#### Strategy A: New Data Only
+```python
+# Fastest, but may lose historical patterns
+train_data = new_production_data
+```
+**Pros:** Fast training, adapts quickly  
+**Cons:** May forget important historical patterns
+
+#### Strategy B: Combined (Last 6 Months + New) ⭐ Recommended
+```python
+# Balance of historical knowledge + new patterns
+train_data = last_6_months_original + new_production_data
+```
+**Pros:** Best of both worlds  
+**Cons:** Slightly slower training
+
+#### Strategy C: Weighted Sampling
+```python
+# Emphasize recent data, but keep some history
+train_data = sample_with_weights(
+    original_data, weight=0.3,
+    new_data, weight=0.7
+)
+```
+**Pros:** Fine-grained control  
+**Cons:** More complex to tune
+
+**The script will:**
+1. Load original training data
+2. Load new production data
+3. Apply your chosen strategy
+4. Train 3 models (LR, RF, XGBoost)
+5. Compare performance: Old model vs. New model
+6. Log everything to MLflow
+
+**Output:**
+- New trained models in MLflow
+- Performance comparison report
+- Recommendation on whether to deploy
+
+**💡 Minimum Data Requirements:** 
+- At least **1,000 new samples** before retraining
+- Sufficient representation of both classes
+
+---
+
+### Step 4: Redeploy the Model
+
+**Run:** `python module2/04_redeploy_model.py`
+
+**What it does:**
+- Registers new model in MLflow Model Registry
+- Implements safe deployment:
+  - **Staging:** Test in isolated environment
+  - **Canary:** Route 10% traffic to new model
+  - **Full rollout:** If metrics improve, route 100%
+- Tags with version info and drift metadata
+
+**Deployment Options:**
+
+| Method | Traffic Split | Rollback |
+|--------|--------------|----------|
+| Blue-Green | 0% → 100% | Instant |
+| Canary | 10% → 50% → 100% | Gradual |
+| A/B Test | 50/50 for 2 weeks | Compare |
+
+**Output:**
+- Model registered as `banking_model_v2`
+- Deployment logs
+- Rollback commands if needed
+
+---
+
+## ⚙️ Configuration: `drift_config.yaml`
+
+```yaml
+# Monitoring thresholds
+drift_detection:
+  feature_drift_threshold: 0.3  # Trigger retraining
+  performance_drop_threshold: 0.05  # 5% AUC drop
+  minimum_new_samples: 1000  # Before retraining
+
+# Retraining strategy
+retraining:
+  strategy: "combined"  # Options: new_only, combined, weighted
+  historical_window_months: 6
+  new_data_weight: 0.7  # For weighted strategy
+
+# Monitoring frequency
+monitoring:
+  schedule: "weekly"  # Options: daily, weekly, event_driven
+  drift_check_samples: 500  # Minimum for drift detection
 ```
 
-**Manual deployment:**
-If automatic deployment fails, use CML UI:
-1. Go to Models → New Model
-2. Name: `banking-campaign-predictor`
-3. File: `module1/model_api.py`
-4. Function: `predict`
-5. Deploy with 1 CPU / 2 GB RAM
+**How to adjust:**
+- **Stricter monitoring:** Lower `feature_drift_threshold` to 0.2
+- **More historical data:** Increase `historical_window_months` to 12
+- **Faster adaptation:** Use `strategy: "new_only"`
 
-**Test deployment:**
-```bash
-python test_deployment.py
-# Update URL and API key first
+---
+
+## 🎓 Key Concepts
+
+### What is Data Drift?
+
+**Concept Drift:** When the relationship between features and target changes  
+*Example:* Economic downturn makes customers less likely to subscribe, even with same demographics
+
+**Feature Drift:** When input data distributions change  
+*Example:* Customer age distribution shifts from avg 38 → 42 years
+
+**Prediction Drift:** When model's output distribution changes  
+*Example:* Model predicts "yes" 20% of time instead of 11%
+
+### When to Retrain?
+
+| Indicator | Threshold | Action |
+|-----------|-----------|--------|
+| Drift Score > 0.3 | High drift | Retrain soon |
+| AUC drops > 5% | Performance degraded | Retrain immediately |
+| 1000+ new samples | Sufficient data | Can retrain |
+| < 500 new samples | Insufficient data | Wait for more data |
+
+### Training Data Composition
+
+**Rule of Thumb:** Include enough historical data to preserve patterns, but weight recent data higher.
+
+**Example Decision Tree:**
+```
+Is drift detected? 
+├─ Yes → High drift (>0.5)?
+│   ├─ Yes → Use new_only strategy (adapt fast)
+│   └─ No → Use combined strategy (6mo + new)
+└─ No → No retraining needed
 ```
 
 ---
 
-## Key Takeaways
+## 💡 Discussion Questions for Lab
 
-### Feature Engineering Impact
-The engagement score provides measurable improvement:
-- Captures customer interaction patterns holistically
-- More interpretable than raw features
-- Shows 3-4x conversion difference across quintiles
+1. **Monitoring Frequency:**
+   - Daily: Catches issues fast, but expensive
+   - Weekly: Good balance for most use cases
+   - Event-driven: Retrain when >1000 samples accumulated
+   - *What's right for your use case?*
 
-### MLflow Benefits
-- Complete experiment history
-- Easy comparison across runs
-- Reproducibility built-in
-- Smooth transition to production
+2. **Data Mixing:**
+   - All historical data: Risk of stale patterns
+   - Only new data: Risk of forgetting important patterns
+   - Last 6 months + new: Balanced approach
+   - *How much history should you keep?*
 
-### Deployment Patterns
-- Models move from experiment to production seamlessly
-- API provides standardized interface
-- Version control enables rollback
+3. **Retraining Triggers:**
+   - Scheduled (every Monday)
+   - Threshold-based (drift > 0.3)
+   - Performance-based (AUC drops 5%)
+   - Hybrid (drift OR performance)
+   - *Which trigger makes sense?*
 
-## Common Issues & Solutions
+---
 
-**Issue:** Can't connect to data lake
-- **Solution:** Check `DATA_LAKE_NAME` environment variable
-- Verify data connection exists in CML
+## 📊 Success Metrics
 
-**Issue:** MLflow experiments not showing
-- **Solution:** Check `mlflow.db` file exists
-- Run `mlflow ui` from project root directory
+By the end of Module 2, you should be able to:
+- [ ] Generate realistic production data with drift
+- [ ] Interpret drift detection reports
+- [ ] Choose appropriate retraining strategy
+- [ ] Compare old vs. new model performance
+- [ ] Safely deploy updated models
 
-**Issue:** Model deployment fails
-- **Solution:** Deploy manually through CML UI
-- Verify runtime and resource settings
+**Expected Outcomes:**
+- Drift detection report showing 20-40% drift score
+- Retrained model with 3-5% improved AUC
+- Automated retraining pipeline that runs without manual intervention
 
-**Issue:** Import errors
-- **Solution:** Run `pip install` commands
-- Ensure you're in correct Python environment
+---
 
-## Next Steps
+## 🐛 Troubleshooting
 
-Once you've completed Module 1:
-1. Review your MLflow experiments
-2. Compare model performance metrics
-3. Test your deployed API
-4. Proceed to **Module 2: MLOps Lifecycle**
+**Issue:** Not enough new data (< 1000 samples)  
+**Solution:** Run `01_simulate_time_passage.py` with `--samples 5000`
 
-## Files Summary
-```
-module1/
-├── 01_ingest_data.py              # Data download and ingestion
-├── 02_eda_feature_engineering.ipynb  # EDA and feature creation
-├── 03_train_with_mlflow.py        # Model training with tracking
-├── 04_deploy_model.py             # Model deployment
-├── utils.py                       # Helper functions
-├── model_api.py                   # Generated API code
-└── test_deployment.py             # Generated test script
-```
+**Issue:** No drift detected  
+**Solution:** Increase drift in simulation or check thresholds in config
 
-## Questions for Discussion
+**Issue:** Retrained model performs worse  
+**Solution:** Try different strategy (combined vs. new_only)
 
-1. Why did we use Spark for writes but Pandas for analysis?
-2. What other features could we engineer from this data?
-3. How did the engagement score improve model performance?
-4. What metrics matter most for this business problem?
-5. How would you explain the model to non-technical stakeholders?
+**Issue:** MLflow experiment not found  
+**Solution:** Ensure Module 1 completed and experiments exist
+
+---
+
+## 🔗 What's Next?
+
+**Module 3:** Model deployment and serving  
+**Module 4:** Advanced monitoring and observability
+
+---
+
+## 📚 Additional Resources
+
+- [Evidently AI Documentation](https://docs.evidentlyai.com/)
+- [MLflow Model Registry Guide](https://mlflow.org/docs/latest/model-registry.html)
+- [ML Monitoring Best Practices](https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning)
+
+---
+
+**Lab Duration:** ~2 hours  
+**Prerequisites:** Module 1 completed  
+**Difficulty:** Intermediate
+
+---
+
+*Questions or issues? Check the troubleshooting section or ask your instructor.*

@@ -77,11 +77,11 @@ def engineer_features(df):
         labels=['<30', '30-40', '40-50', '50-60', '60+']
     )
     
-    # Balance categories
-    df['balance_category'] = pd.cut(
-        df['balance'],
-        bins=[-np.inf, 0, 1000, 5000, np.inf],
-        labels=['negative', 'low', 'medium', 'high']
+    # Economic indicator categories (using employment variation rate)
+    df['emp_var_category'] = pd.cut(
+        df['emp.var.rate'],
+        bins=[-np.inf, -1, 0, 1, np.inf],
+        labels=['very_low', 'low', 'neutral', 'high']
     )
     
     # Contact duration categories (important predictor)
@@ -110,13 +110,13 @@ def preprocess_for_training(df, target_column='y', include_engagement=True):
     
     # Define feature sets
     numeric_features = [
-        'age', 'balance', 'day', 'duration', 
-        'campaign', 'pdays', 'previous'
+        'age', 'duration', 'campaign', 'pdays', 'previous',
+        'emp.var.rate', 'cons.price.idx', 'cons.conf.idx', 'euribor3m', 'nr.employed'
     ]
-    
+
     categorical_features = [
-        'job', 'marital', 'education', 'default', 
-        'housing', 'loan', 'contact', 'month', 'poutcome'
+        'job', 'marital', 'education', 'default',
+        'housing', 'loan', 'contact', 'month', 'day_of_week', 'poutcome'
     ]
     
     # Add engagement score if requested
