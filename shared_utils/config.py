@@ -8,12 +8,6 @@ DATALAKE_CONFIG = {
     "table_name": "bank_marketing",
 }
 
-# MLflow configuration
-MLFLOW_CONFIG = {
-    "experiment_name": "banking_campaign_prediction",
-    "tracking_uri": "sqlite:///mlflow.db",  # Default local tracking
-}
-
 # Model configuration
 MODEL_CONFIG = {
     "target_column": "y",

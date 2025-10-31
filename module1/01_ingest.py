@@ -18,6 +18,8 @@ import sys
 import zipfile
 import urllib.request
 import pandas as pd
+import time
+from datetime import datetime
 from pyspark.sql import SparkSession
 
 # Add parent directory to path for imports
@@ -30,44 +32,60 @@ from shared_utils import (
 
 
 def download_data(url, local_zip_path, local_csv_path):
-    """Download and extract"""
+    """Download and extract the dataset"""
+    download_start = time.time()
+
     print("Downloading dataset...")
-    
+
     urllib.request.urlretrieve(url, local_zip_path)
     print(f"Downloaded to {local_zip_path}")
-    
+
     # Extract to data/ directory (not local_csv_path's dirname)
+    extract_start = time.time()
     with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
         zip_ref.extractall("data/")  # Extract directly to data/
-    
-    print(f"Extracted to data/")
+    extract_elapsed = time.time() - extract_start
+
+    print(f"Extracted to data/ ({extract_elapsed:.2f} seconds)")
+
+    download_elapsed = time.time() - download_start
+    print(f"Total download time: {download_elapsed:.2f} seconds")
     
 
 def load_and_inspect_data(csv_path):
     """
     Load CSV into Pandas and perform basic inspection
-    
+
     Args:
         csv_path: Path to CSV file
-        
+
     Returns:
         Pandas DataFrame
     """
+    load_start = time.time()
+
     print("\nLoading data with Pandas...")
-    print("\n printing csv_path",csv_path)
+    print("\n printing csv_path", csv_path)
+
+    read_start = time.time()
     df = pd.read_csv(csv_path, delimiter=';')
-    
+    read_elapsed = time.time() - read_start
+
+    print(f"Data loaded in {read_elapsed:.2f} seconds")
     print(f"\nDataset shape: {df.shape}")
     print(f"Columns: {list(df.columns)}")
     print(f"\nFirst few rows:")
     print(df.head())
-    
+
     print(f"\nData types:")
     print(df.dtypes)
-    
+
     print(f"\nTarget variable distribution:")
     print(df['y'].value_counts())
-    
+
+    load_elapsed = time.time() - load_start
+    print(f"\nTotal load and inspect time: {load_elapsed:.2f} seconds")
+
     return df
 
 
@@ -75,50 +93,63 @@ def write_to_datalake(df, database_name, table_name, username):
     """
     Write Pandas DataFrame to data lake using Spark
     """
+    write_start = time.time()
+
     print(f"\nWriting to data lake with user: {username}")
-    
+
     # Get connection name from environment (matches yaml)
-    CONNECTION_NAME = os.environ.get("CONNECTION_NAME", "go01-aw-dl")  # Changed default
-    #CONNECTION_NAME = "go01-aw-dl"
+    CONNECTION_NAME = os.environ.get("CONNECTION_NAME", "se-aws-edl")  # 
     print(f"Using connection: {CONNECTION_NAME}")
-    
+
     # Get Spark from CML data connection
     import cml.data_v1 as cmldata
     conn = cmldata.get_connection(CONNECTION_NAME)
     spark = conn.get_spark_session()
-    
+
     # Fix Pandas compatibility
     if not hasattr(pd.DataFrame, 'iteritems'):
         pd.DataFrame.iteritems = pd.DataFrame.items
-    
+
     # Convert to Spark DataFrame
+    conversion_start = time.time()
     spark_df = spark.createDataFrame(df)
-    
+    conversion_elapsed = time.time() - conversion_start
+    print(f"Spark DataFrame conversion: {conversion_elapsed:.2f} seconds")
+
     # Create unique database and table names
     #full_db = "DEFAULT_ML_WORKSHOP"
     full_db = f"{database_name}_{username}".upper()
     full_table = f"{table_name}_{username}".upper()
     full_path = f"{full_db}.{full_table}"
-    
+
     # Create database
     spark.sql(f"CREATE DATABASE IF NOT EXISTS {full_db}")
-    
+
     # Write as Iceberg
+    iceberg_start = time.time()
     spark_df.writeTo(full_path).using("iceberg").createOrReplace()
-    
-    print(f"\n✓ Data written to {full_path}")
+    iceberg_elapsed = time.time() - iceberg_start
+
+    print(f"✓ Data written to {full_path}")
+    print(f"Iceberg write time: {iceberg_elapsed:.2f} seconds")
+
+    write_elapsed = time.time() - write_start
+    print(f"Total data lake write time: {write_elapsed:.2f} seconds")
 
 def main():
     """
-    Main execution function
+    Main execution function with timing instrumentation
     """
-    print("="*60)
+    # Start overall timing
+    script_start = time.time()
+
+    print("=" * 60)
     print("Module 1 - Step 1: Data Ingestion")
-    print("="*60)
-    
+    print("=" * 60)
+    print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
     USERNAME = os.environ["PROJECT_OWNER"]
-    print(f"\nUser: {USERNAME}")
+    print(f"User: {USERNAME}")
 
     # Configuration
     DATA_URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/00222/bank-additional.zip"
@@ -126,30 +157,47 @@ def main():
     #LOCAL_CSV = "data/bank-additional/bank-additional-full.csv"
     LOCAL_CSV = "data/bank-additional-full.csv"
     read_local_csv = "data/bank-additional/bank-additional-full.csv"
-    
+
     # Create data directory if it doesn't exist
     os.makedirs("data", exist_ok=True)
-    
+
     # Step 1: Download data
+    print("\n" + "-" * 60)
+    print("STEP 1: Download Data")
+    print("-" * 60)
     if not os.path.exists(LOCAL_CSV):
         download_data(DATA_URL, LOCAL_ZIP, LOCAL_CSV)
     else:
         print(f"Data already exists at {LOCAL_CSV}")
-    
+
     # Step 2: Load and inspect
+    print("\n" + "-" * 60)
+    print("STEP 2: Load and Inspect Data")
+    print("-" * 60)
     df = load_and_inspect_data(read_local_csv)
-    
+
     # Step 3: Write to data lake
+    print("\n" + "-" * 60)
+    print("STEP 3: Write to Data Lake")
+    print("-" * 60)
     write_to_datalake(
-        df, 
-        DATALAKE_CONFIG["database_name"], 
+        df,
+        DATALAKE_CONFIG["database_name"],
         DATALAKE_CONFIG["table_name"],
         USERNAME  # Add username parameter
     )
-    
-    print("\n" + "="*60)
-    print("Ingestion complete! Proceed to 02_eda_feature_engineering.ipynb")
-    print("="*60)
+
+    # Calculate total execution time
+    script_elapsed = time.time() - script_start
+
+    print("\n" + "=" * 60)
+    print("EXECUTION SUMMARY")
+    print("=" * 60)
+    print(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Total execution time: {script_elapsed:.2f} seconds ({script_elapsed/60:.2f} minutes)")
+    print("=" * 60)
+    print("✅ Ingestion complete! Proceed to 02_eda_feature_engineering.ipynb")
+    print("=" * 60)
 
 
 if __name__ == "__main__":

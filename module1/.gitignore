@@ -1,0 +1,25 @@
+# Data files
+data/
+
+# MLflow tracking artifacts and runs
+mlflow-tracking/
+
+# Output files and results
+outputs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+.env
