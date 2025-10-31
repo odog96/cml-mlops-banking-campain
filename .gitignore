@@ -112,3 +112,6 @@ __MACOSX/
 
 # Image folders (if not needed)
 img/
+
+# Experiments directory
+.experiments/

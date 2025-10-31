@@ -36,14 +36,15 @@ from datetime import datetime
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared_utils import MODEL_CONFIG
-from module1.utils import preprocess_for_training, split_data
-from module1._training_utils import (
+from helpers.preprocessing import preprocess_for_training, split_data
+from helpers._training_utils import (
     setup_mlflow, load_data, train_model, save_results, print_summary
 )
 
 
 def run_extended_experiments(X_train, X_test, y_train, y_test,
-                             experiment_name, include_engagement=True):
+                             experiment_name, include_engagement=True,
+                             preprocessor=None, feature_engineer=None):
     """
     Run a comprehensive suite of experiments with 3 models and 4 configs each.
 
@@ -51,6 +52,8 @@ def run_extended_experiments(X_train, X_test, y_train, y_test,
         X_train, X_test, y_train, y_test: Train/test data splits
         experiment_name: Name of the experiment phase (baseline/engineered)
         include_engagement: Whether engagement score was used in features
+        preprocessor: PreprocessingPipeline instance to log with models
+        feature_engineer: FeatureEngineer instance to log with models
 
     Returns:
         DataFrame with all experiment results
@@ -79,7 +82,8 @@ def run_extended_experiments(X_train, X_test, y_train, y_test,
         model, metrics = train_model(
             X_train, X_test, y_train, y_test,
             'logistic', params, run_name,
-            use_smote=False, include_engagement=include_engagement
+            use_smote=False, include_engagement=include_engagement,
+            preprocessor=preprocessor, feature_engineer=feature_engineer
         )
         results.append({'model_type': 'Logistic Regression', 'config': idx,
                        'smote': False, **metrics})
@@ -89,7 +93,8 @@ def run_extended_experiments(X_train, X_test, y_train, y_test,
         model, metrics = train_model(
             X_train, X_test, y_train, y_test,
             'logistic', params, run_name,
-            use_smote=True, include_engagement=include_engagement
+            use_smote=True, include_engagement=include_engagement,
+            preprocessor=preprocessor, feature_engineer=feature_engineer
         )
         results.append({'model_type': 'Logistic Regression', 'config': idx,
                        'smote': True, **metrics})
@@ -112,7 +117,8 @@ def run_extended_experiments(X_train, X_test, y_train, y_test,
         model, metrics = train_model(
             X_train, X_test, y_train, y_test,
             'random_forest', params, run_name,
-            use_smote=False, include_engagement=include_engagement
+            use_smote=False, include_engagement=include_engagement,
+            preprocessor=preprocessor, feature_engineer=feature_engineer
         )
         results.append({'model_type': 'Random Forest', 'config': idx,
                        'smote': False, **metrics})
@@ -122,7 +128,8 @@ def run_extended_experiments(X_train, X_test, y_train, y_test,
         model, metrics = train_model(
             X_train, X_test, y_train, y_test,
             'random_forest', params, run_name,
-            use_smote=True, include_engagement=include_engagement
+            use_smote=True, include_engagement=include_engagement,
+            preprocessor=preprocessor, feature_engineer=feature_engineer
         )
         results.append({'model_type': 'Random Forest', 'config': idx,
                        'smote': True, **metrics})
@@ -149,7 +156,8 @@ def run_extended_experiments(X_train, X_test, y_train, y_test,
         model, metrics = train_model(
             X_train, X_test, y_train, y_test,
             'xgboost', params, run_name,
-            use_smote=False, include_engagement=include_engagement
+            use_smote=False, include_engagement=include_engagement,
+            preprocessor=preprocessor, feature_engineer=feature_engineer
         )
         results.append({'model_type': 'XGBoost', 'config': idx,
                        'smote': False, **metrics})
@@ -159,7 +167,8 @@ def run_extended_experiments(X_train, X_test, y_train, y_test,
         model, metrics = train_model(
             X_train, X_test, y_train, y_test,
             'xgboost', params, run_name,
-            use_smote=True, include_engagement=include_engagement
+            use_smote=True, include_engagement=include_engagement,
+            preprocessor=preprocessor, feature_engineer=feature_engineer
         )
         results.append({'model_type': 'XGBoost', 'config': idx,
                        'smote': True, **metrics})
@@ -190,7 +199,7 @@ def main():
 
     phase1_start = time.time()
 
-    X_baseline, y, _, _ = preprocess_for_training(df, include_engagement=False)
+    X_baseline, y, preprocessor_base, feature_engineer_base = preprocess_for_training(df, include_engagement=False)
     X_train_base, X_test_base, y_train, y_test = split_data(
         X_baseline, y,
         test_size=MODEL_CONFIG["test_size"],
@@ -200,7 +209,9 @@ def main():
     results_baseline = run_extended_experiments(
         X_train_base, X_test_base, y_train, y_test,
         experiment_name="baseline",
-        include_engagement=False
+        include_engagement=False,
+        preprocessor=preprocessor_base,
+        feature_engineer=feature_engineer_base
     )
 
     phase1_elapsed = time.time() - phase1_start
@@ -212,7 +223,7 @@ def main():
 
     phase2_start = time.time()
 
-    X_engineered, y, _, _ = preprocess_for_training(df, include_engagement=True)
+    X_engineered, y, preprocessor_eng, feature_engineer_eng = preprocess_for_training(df, include_engagement=True)
     X_train_eng, X_test_eng, y_train, y_test = split_data(
         X_engineered, y,
         test_size=MODEL_CONFIG["test_size"],
@@ -222,7 +233,9 @@ def main():
     results_engineered = run_extended_experiments(
         X_train_eng, X_test_eng, y_train, y_test,
         experiment_name="engineered",
-        include_engagement=True
+        include_engagement=True,
+        preprocessor=preprocessor_eng,
+        feature_engineer=feature_engineer_eng
     )
 
     phase2_elapsed = time.time() - phase2_start

@@ -1,5 +1,6 @@
 # Data files
 data/
+inference_data/
 
 # MLflow tracking artifacts and runs
 mlflow-tracking/

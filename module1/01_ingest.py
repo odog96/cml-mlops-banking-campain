@@ -18,6 +18,7 @@ import sys
 import zipfile
 import urllib.request
 import pandas as pd
+import numpy as np
 import time
 from datetime import datetime
 from pyspark.sql import SparkSession
@@ -98,7 +99,7 @@ def write_to_datalake(df, database_name, table_name, username):
     print(f"\nWriting to data lake with user: {username}")
 
     # Get connection name from environment (matches yaml)
-    CONNECTION_NAME = os.environ.get("CONNECTION_NAME", "se-aws-edl")  # 
+    CONNECTION_NAME = os.environ.get("CONNECTION_NAME", "se-aws-edl")  #
     print(f"Using connection: {CONNECTION_NAME}")
 
     # Get Spark from CML data connection
@@ -135,6 +136,43 @@ def write_to_datalake(df, database_name, table_name, username):
 
     write_elapsed = time.time() - write_start
     print(f"Total data lake write time: {write_elapsed:.2f} seconds")
+
+
+def create_sample_inference_data(df):
+    """
+    Create sample inference data for demonstration and testing purposes.
+
+    Takes a random sample of the raw data (without target variable) and saves
+    it to the inference_data folder for use in the inference job pipeline.
+
+    Args:
+        df: Full dataset DataFrame
+    """
+    inference_start = time.time()
+
+    print("\nCreating sample inference data...")
+
+    # Create inference_data directory if it doesn't exist
+    os.makedirs("inference_data", exist_ok=True)
+
+    # Take a random sample (1000 records for demo)
+    np.random.seed(42)
+    sample_df = df.sample(n=min(1000, len(df)), random_state=42)
+
+    # Remove target variable 'y' for inference (in real scenario, we wouldn't have it)
+    inference_df = sample_df.drop(columns=['y'])
+
+    # Save as CSV with semicolon delimiter (matching training data format)
+    output_path = "inference_data/raw_inference_data.csv"
+    inference_df.to_csv(output_path, sep=";", index=False)
+
+    inference_elapsed = time.time() - inference_start
+
+    print(f"✓ Sample inference data created")
+    print(f"  Shape: {inference_df.shape}")
+    print(f"  Columns: {len(inference_df.columns)}")
+    print(f"  Saved to: {output_path}")
+    print(f"  Creation time: {inference_elapsed:.2f} seconds")
 
 def main():
     """
@@ -187,6 +225,12 @@ def main():
         USERNAME  # Add username parameter
     )
 
+    # Step 4: Create sample inference data
+    print("\n" + "-" * 60)
+    print("STEP 4: Create Sample Inference Data")
+    print("-" * 60)
+    create_sample_inference_data(df)
+
     # Calculate total execution time
     script_elapsed = time.time() - script_start
 
@@ -196,7 +240,10 @@ def main():
     print(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Total execution time: {script_elapsed:.2f} seconds ({script_elapsed/60:.2f} minutes)")
     print("=" * 60)
-    print("✅ Ingestion complete! Proceed to 02_eda_feature_engineering.ipynb")
+    print("✅ Ingestion complete!")
+    print("\nNext steps:")
+    print("  • Training pipeline: 02_eda_feature_engineering.ipynb → 03_train_quick.py")
+    print("  • Inference pipeline: 05_inference_data_prep.py → 06_inference_predict.py")
     print("=" * 60)
 
 

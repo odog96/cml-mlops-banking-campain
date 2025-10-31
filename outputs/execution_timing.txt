@@ -1,0 +1,9 @@
+================================================================================
+Execution Timing Summary
+================================================================================
+
+Total Experiments: 8
+Total Time: 113.67 seconds (1.89 minutes)
+Average per Experiment: 14.21 seconds
+Phase 1 (Baseline): 57.42 seconds
+Phase 2 (Engineered): 56.11 seconds

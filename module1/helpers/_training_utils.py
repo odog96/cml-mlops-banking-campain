@@ -36,17 +36,17 @@ def setup_mlflow():
 
 
 def load_data():
-    """Load the engineered dataset"""
-    data_path = "/home/cdsw/data/bank_marketing_engineered.csv"
+    """Load the raw dataset for preprocessing and feature engineering"""
+    data_path = "/home/cdsw/module1/data/bank-additional/bank-additional-full.csv"
 
     if not os.path.exists(data_path):
         raise FileNotFoundError(
-            f"Engineered data not found at {data_path}\n"
-            "Please run 02_eda_feature_engineering.ipynb first!"
+            f"Raw data not found at {data_path}\n"
+            "Expected raw banking data file not available!"
         )
 
-    df = pd.read_csv(data_path)
-    print(f"✓ Loaded data: {df.shape}")
+    df = pd.read_csv(data_path, sep=";")
+    print(f"✓ Loaded raw data: {df.shape}")
     return df
 
 
@@ -74,7 +74,8 @@ def apply_smote(X_train, y_train):
 
 
 def train_model(X_train, X_test, y_train, y_test, model_type, params,
-                run_name, use_smote=False, include_engagement=True):
+                run_name, use_smote=False, include_engagement=True,
+                preprocessor=None, feature_engineer=None):
     """
     Train a single model and log everything to MLflow
 
@@ -85,6 +86,8 @@ def train_model(X_train, X_test, y_train, y_test, model_type, params,
         run_name: Name for this MLflow run
         use_smote: Whether to apply SMOTE for class balancing
         include_engagement: Whether engagement_score was used
+        preprocessor: PreprocessingPipeline instance (to be logged with model)
+        feature_engineer: FeatureEngineer instance (to be logged with model)
 
     Returns:
         Trained model and metrics
@@ -155,14 +158,27 @@ def train_model(X_train, X_test, y_train, y_test, model_type, params,
                 mlflow.log_metric(f"top_{idx+1}_feature_importance", importance)
                 mlflow.log_param(f"top_{idx+1}_feature_name", feat)
 
-        # Log model
+        # Log model with preprocessing artifacts
         signature = infer_signature(X_train, y_pred_test)
+
         mlflow.sklearn.log_model(
             model,
             "model",
             signature=signature,
             input_example=X_train.iloc[:5]
         )
+
+        # Log preprocessing artifacts separately using pickle
+        import pickle
+        import tempfile
+        if preprocessor is not None:
+            with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.pkl') as f:
+                pickle.dump(preprocessor, f)
+                mlflow.log_artifact(f.name, artifact_path='preprocessing')
+        if feature_engineer is not None:
+            with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.pkl') as f:
+                pickle.dump(feature_engineer, f)
+                mlflow.log_artifact(f.name, artifact_path='preprocessing')
 
         # Print results
         print(f"  Train Accuracy: {train_metrics['accuracy']:.4f} | Test Accuracy: {test_metrics['accuracy']:.4f}")

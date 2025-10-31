@@ -1,0 +1,87 @@
+═══════════════════════════════════════════════════════════════════════════════
+                           MODULE 1 - TESTING QUICK START
+═══════════════════════════════════════════════════════════════════════════════
+
+LOCATION: You are in _admin/ folder (for instructors/TAs)
+
+QUICK COMMANDS:
+───────────────────────────────────────────────────────────────────────────────
+
+1. VALIDATE ENTIRE PIPELINE (5-10 minutes)
+   python run_tests.py
+
+2. DEBUG WITH FULL OUTPUT (slower, but shows all output)
+   python run_tests.py --verbose
+
+3. SKIP SLOW SCRIPTS
+   Skip deployment (04_deploy.py):
+   python run_tests.py --skip 04
+
+   Skip inference pipeline:
+   python run_tests.py --skip 05_1,05_2
+
+4. TEST ONLY SPECIFIC SCRIPTS
+   Test data & training only:
+   python run_tests.py --only 01,02,03
+
+   Test ingestion & EDA only:
+   python run_tests.py --only 01,02
+
+5. INCREASE TIMEOUT (for slow systems)
+   python run_tests.py --timeout 900
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WHAT YOU GET:
+───────────────────────────────────────────────────────────────────────────────
+
+Console Output:  Real-time status with ✅ PASSED, ❌ FAILED, ⏭️ SKIPPED
+test_results.json:   Machine-readable results (for automation)
+test_results.log:    Detailed execution log (for debugging)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+PIPELINE ORDER (what gets tested):
+───────────────────────────────────────────────────────────────────────────────
+
+1️⃣  01_ingest.py              → Data ingestion (fast)
+2️⃣  02_eda_notebook.ipynb     → EDA analysis (medium)
+3️⃣  03_train_quick.py         → Training (slow - 2-5 min)
+4️⃣  04_deploy.py              → Deployment (medium - can skip)
+5️⃣  05_1_inference_data_prep.py → Data prep (fast)
+6️⃣  05_2_inference_predict.py  → Predictions (fast)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+COMMON SCENARIOS:
+───────────────────────────────────────────────────────────────────────────────
+
+New Environment Validation:
+  python run_tests.py
+
+Quick Check (skip slow training):
+  python run_tests.py --skip 03
+
+Data Pipeline Only:
+  python run_tests.py --only 01,02
+
+Training Only:
+  python run_tests.py --only 03
+
+Inference Only:
+  python run_tests.py --only 05_1,05_2
+
+Debug Mode:
+  python run_tests.py --verbose
+
+═══════════════════════════════════════════════════════════════════════════════
+
+NEED HELP?
+───────────────────────────────────────────────────────────────────────────────
+
+1. Read TESTING.md for detailed documentation
+2. Read README.md for admin folder info
+3. Check test_results.log for detailed error info
+4. Run python run_tests.py --help for all options
+
+═══════════════════════════════════════════════════════════════════════════════
