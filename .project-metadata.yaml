@@ -5,18 +5,13 @@ date: "2025-02-13"
 specification_version: 1.0
 prototype_version: 1.0
 environment_variables:
-#   # AWS_ACCESS_KEY_ID:
-#   #   default: ""
-#   #   description: "Access key ID for interacting with AWS Bedrock"
-#   # AWS_SECRET_ACCESS_KEY:
-#   #   default: ""
-#   #   description: "Secret ket for interacting with AWS Bedrock"
+
   CONNECTION_NAME:
-    default: "mlops-aw-dl"
+    default: "go01-demo-aws"
     description: "datalake connection name"
 runtimes: 
   - editor: Workbench
-    kernel: Python 3.9
+    kernel: Python 3.10
     edition: Standard
     version: "2024.10"
     addons: [Spark 3.3.0 - CDE 1.22.0]
@@ -24,34 +19,9 @@ runtimes:
 tasks:
   - type: run_session
     name: Install Dependencies
-    script: install-dependencies.py
+    script: shared_utils/install-dependencies.py
     short_summary: Install Dependencies
     kernel: python3
-    cpu: 2
-    memory: 12
-    
-# name: ML Ops Hands on Lab 
-# description: Prototype to demonstrate machine learning operations in production
-# author: Cloudera Inc.
-# prototype_version: 2.0
-# date: "2025-02-13"
+    cpu: 8
+    memory: 16
 
-# environment_variables:
-#   CONNECTION_NAME:
-#     default: "mlops-aw-dl"
-#     description: "datalake connection name"
-
-# runtimes:
-#   - editor: Workbench
-#     kernel: Python 3.9
-#     edition: Standard
-#     version: 2024.10
-#     addons: ["Spark 3.3.0 - CDE 1.22.0"]
-    
-# tasks:
-#   - type: run_session
-#     name: Install dependencies
-#     script: install-dependencies.py
-#     short_summary: Install dependencies
-#     cpu: 2
-#     memory: 4
