@@ -88,25 +88,29 @@ The artificial dataset includes:
 **Purpose**: Creates the artificial ground truth dataset with intentional accuracy degradation
 
 **What it does**:
-1. Reads BATCH_SIZE from environment (or uses default 50)
-2. Calculates num_periods = total_samples / BATCH_SIZE
+1. Reads BATCH_SIZE from top of script (hardcoded, like 01_get_predictions.py)
+2. Calculates num_periods = TOTAL_SAMPLES / BATCH_SIZE
 3. Calculates degradation_rate to spread degradation evenly across all periods
 4. Loads engineered inference data from Module 1
 5. Loads predictions from Module 1
 6. Creates artificial ground truth labels with progressive corruption
 7. Saves `artificial_ground_truth_data.csv` and `ground_truth_metadata.json`
 
-**Configuration** (automatically calculated):
+**Configuration** (hardcoded at top of script):
 ```python
-BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "50"))
-num_periods = 1000 // BATCH_SIZE           # = Total samples / Batch size
-degradation_rate = (0.95 - 0.5) / num_periods  # Spread across all periods
+BATCH_SIZE = 50              # Must match BATCH_SIZE in 01_get_predictions.py
+TOTAL_SAMPLES = 1000         # Expected dataset size from module1
+
+num_periods = TOTAL_SAMPLES // BATCH_SIZE           # = 1000 / 50 = 20
+degradation_rate = (0.95 - 0.5) / num_periods       # Spread across all periods
 ```
 
-**Environment Variables**:
-- `BATCH_SIZE`: Batch size for processing (default: 50)
-  - This MUST match the BATCH_SIZE used in 01_get_predictions.py
-  - Example: If BATCH_SIZE=50 and 1000 samples → 20 periods
+**To Change Settings**:
+Edit the hardcoded values at the top of the script:
+```python
+BATCH_SIZE = 50              # Change to match your batch size
+TOTAL_SAMPLES = 1000         # Change if your dataset size is different
+```
 
 **Output**:
 - `data/artificial_ground_truth_data.csv` (full dataset with labels)
@@ -116,11 +120,7 @@ degradation_rate = (0.95 - 0.5) / num_periods  # Spread across all periods
 
 **Run**:
 ```bash
-# With default batch size (50):
 python 00_prepare_artificial_data.py
-
-# With custom batch size:
-BATCH_SIZE=100 python 00_prepare_artificial_data.py
 ```
 
 ---
@@ -260,23 +260,27 @@ cdsw.track_aggregate_metrics(
 
 ### Step 1: Prepare Artificial Data (One-time)
 
-**IMPORTANT**: Set BATCH_SIZE BEFORE running this step. It must match what you'll use in 01_get_predictions.py.
+**IMPORTANT**: Verify BATCH_SIZE matches between 00_prepare_artificial_data.py and 01_get_predictions.py
 
 ```bash
 cd /home/cdsw/module2
 
-# Set batch size (default is 50):
-export BATCH_SIZE=50
-
-# Run data preparation:
+# Verify both scripts have the same BATCH_SIZE at the top
+# Then run data preparation:
 python 00_prepare_artificial_data.py
 ```
 
 This creates:
 - `data/artificial_ground_truth_data.csv` (full dataset with labels)
-- `data/ground_truth_metadata.json` (period boundaries calculated from BATCH_SIZE)
+- `data/ground_truth_metadata.json` (period boundaries)
 
-**Note**: The number of periods will be automatically calculated as:
+**Configuration**: Edit the hardcoded values at the top of `00_prepare_artificial_data.py`:
+```python
+BATCH_SIZE = 50              # Must match BATCH_SIZE in 01_get_predictions.py
+TOTAL_SAMPLES = 1000         # Expected dataset size
+```
+
+The number of periods will be automatically calculated as:
 - `num_periods = 1000 / BATCH_SIZE`
 - Example: BATCH_SIZE=50 → 20 periods
 

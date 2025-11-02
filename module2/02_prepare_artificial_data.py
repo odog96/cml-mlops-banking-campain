@@ -33,6 +33,10 @@ import os
 from datetime import datetime
 import random
 
+# Configuration
+BATCH_SIZE = 50  # Must match BATCH_SIZE in 01_get_predictions.py
+TOTAL_SAMPLES = 1000  # Expected dataset size from module1
+
 
 def load_engineered_data(data_path):
     """Load engineered inference data from Module 1."""
@@ -157,22 +161,20 @@ def main():
     print("This simulates model degradation that we'll detect in the monitoring pipeline.")
     print("-" * 80)
 
-    # Configuration
-    batch_size = int(os.environ.get("BATCH_SIZE", "50"))
+    # Configuration (hardcoded at top of script)
     print(f"\nConfiguration:")
-    print(f"  BATCH_SIZE: {batch_size} (from environment, default: 50)")
+    print(f"  BATCH_SIZE: {BATCH_SIZE}")
+    print(f"  TOTAL_SAMPLES: {TOTAL_SAMPLES}")
 
     # Number of periods = total dataset size / batch size
     # This ensures periods align with batch processing in 01_get_predictions.py
-    total_samples_estimate = 1000  # Expected dataset size from module1
-    num_periods = total_samples_estimate // batch_size
+    num_periods = TOTAL_SAMPLES // BATCH_SIZE
 
     initial_accuracy = 0.95  # 95% match in period 0
     # Degradation rate: spread degradation evenly across all periods to reach ~50% by last period
     degradation_rate = (initial_accuracy - 0.5) / num_periods
 
-    print(f"  Total samples (estimate): {total_samples_estimate}")
-    print(f"  Number of periods: {num_periods} (= {total_samples_estimate} / {batch_size})")
+    print(f"  Number of periods: {num_periods} (= {TOTAL_SAMPLES} / {BATCH_SIZE})")
     print(f"  Initial accuracy: {initial_accuracy*100:.1f}%")
     print(f"  Degradation rate per period: {degradation_rate*100:.2f}%")
     print(f"  Final period accuracy: ~{max(0.5, initial_accuracy - (num_periods * degradation_rate))*100:.1f}%")
