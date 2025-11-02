@@ -88,18 +88,25 @@ The artificial dataset includes:
 **Purpose**: Creates the artificial ground truth dataset with intentional accuracy degradation
 
 **What it does**:
-1. Loads engineered inference data from Module 1
-2. Loads predictions from Module 1
-3. Creates artificial ground truth labels with progressive corruption
-4. Splits data into N periods where N = total_samples / batch_size (20 periods for 1000 samples)
-5. Saves `artificial_ground_truth_data.csv` and `ground_truth_metadata.json`
+1. Reads BATCH_SIZE from environment (or uses default 50)
+2. Calculates num_periods = total_samples / BATCH_SIZE
+3. Calculates degradation_rate to spread degradation evenly across all periods
+4. Loads engineered inference data from Module 1
+5. Loads predictions from Module 1
+6. Creates artificial ground truth labels with progressive corruption
+7. Saves `artificial_ground_truth_data.csv` and `ground_truth_metadata.json`
 
-**Configuration**:
+**Configuration** (automatically calculated):
 ```python
-num_periods = 20                   # = Total samples / Batch size (1000 / 50)
-initial_accuracy = 0.95            # 95% match in period 0
-degradation_rate = 0.025           # 2.5% drop per period
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "50"))
+num_periods = 1000 // BATCH_SIZE           # = Total samples / Batch size
+degradation_rate = (0.95 - 0.5) / num_periods  # Spread across all periods
 ```
+
+**Environment Variables**:
+- `BATCH_SIZE`: Batch size for processing (default: 50)
+  - This MUST match the BATCH_SIZE used in 01_get_predictions.py
+  - Example: If BATCH_SIZE=50 and 1000 samples → 20 periods
 
 **Output**:
 - `data/artificial_ground_truth_data.csv` (full dataset with labels)
@@ -109,7 +116,11 @@ degradation_rate = 0.025           # 2.5% drop per period
 
 **Run**:
 ```bash
+# With default batch size (50):
 python 00_prepare_artificial_data.py
+
+# With custom batch size:
+BATCH_SIZE=100 python 00_prepare_artificial_data.py
 ```
 
 ---
@@ -249,14 +260,25 @@ cdsw.track_aggregate_metrics(
 
 ### Step 1: Prepare Artificial Data (One-time)
 
+**IMPORTANT**: Set BATCH_SIZE BEFORE running this step. It must match what you'll use in 01_get_predictions.py.
+
 ```bash
 cd /home/cdsw/module2
+
+# Set batch size (default is 50):
+export BATCH_SIZE=50
+
+# Run data preparation:
 python 00_prepare_artificial_data.py
 ```
 
 This creates:
-- `data/artificial_ground_truth_data.csv` (5000+ rows with 5 periods)
-- `data/ground_truth_metadata.json` (configuration)
+- `data/artificial_ground_truth_data.csv` (full dataset with labels)
+- `data/ground_truth_metadata.json` (period boundaries calculated from BATCH_SIZE)
+
+**Note**: The number of periods will be automatically calculated as:
+- `num_periods = 1000 / BATCH_SIZE`
+- Example: BATCH_SIZE=50 → 20 periods
 
 ### Step 2: Create CML Jobs
 
@@ -264,18 +286,29 @@ In CML project, create 3 jobs:
 
 **Job 1: get_predictions**
 - Script: `01_get_predictions.py`
-- Environment: `PERIOD=0`, `BATCH_SIZE=50`
+- Environment:
+  - `PERIOD=0` (initial period)
+  - `BATCH_SIZE=50` (MUST match the BATCH_SIZE used in Step 1)
+  - `MODEL_NAME=banking_campaign_predictor`
+  - `PROJECT_NAME=CAI Baseline MLOPS`
 - Schedule: Manual trigger (or scheduled)
 
 **Job 2: load_ground_truth**
 - Script: `02_load_ground_truth.py`
-- Environment: (inherits PERIOD from previous job)
+- Environment:
+  - `MODEL_NAME=banking_campaign_predictor`
+  - `PROJECT_NAME=CAI Baseline MLOPS`
 - Schedule: Triggered by get_predictions
 
 **Job 3: check_model**
 - Script: `03_check_model.py`
-- Environment: `ACCURACY_THRESHOLD=0.85`
+- Environment:
+  - `ACCURACY_THRESHOLD=0.85`
+  - `MODEL_NAME=banking_campaign_predictor`
+  - `PROJECT_NAME=CAI Baseline MLOPS`
 - Schedule: Triggered by load_ground_truth
+
+**Critical**: BATCH_SIZE in Job 1 MUST match the BATCH_SIZE used when running Step 1 (00_prepare_artificial_data.py)
 
 ### Step 3: Start Monitoring Pipeline
 

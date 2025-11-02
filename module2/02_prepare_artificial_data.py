@@ -158,11 +158,24 @@ def main():
     print("-" * 80)
 
     # Configuration
+    batch_size = int(os.environ.get("BATCH_SIZE", "50"))
+    print(f"\nConfiguration:")
+    print(f"  BATCH_SIZE: {batch_size} (from environment, default: 50)")
+
     # Number of periods = total dataset size / batch size
-    # With 1000 samples and batch size 50, we get 20 periods
-    num_periods = 20
+    # This ensures periods align with batch processing in 01_get_predictions.py
+    total_samples_estimate = 1000  # Expected dataset size from module1
+    num_periods = total_samples_estimate // batch_size
+
     initial_accuracy = 0.95  # 95% match in period 0
-    degradation_rate = 0.025  # 2.5% accuracy drop per period (reaches ~50% by period 20)
+    # Degradation rate: spread degradation evenly across all periods to reach ~50% by last period
+    degradation_rate = (initial_accuracy - 0.5) / num_periods
+
+    print(f"  Total samples (estimate): {total_samples_estimate}")
+    print(f"  Number of periods: {num_periods} (= {total_samples_estimate} / {batch_size})")
+    print(f"  Initial accuracy: {initial_accuracy*100:.1f}%")
+    print(f"  Degradation rate per period: {degradation_rate*100:.2f}%")
+    print(f"  Final period accuracy: ~{max(0.5, initial_accuracy - (num_periods * degradation_rate))*100:.1f}%")
 
     # Set random seed for reproducibility
     random.seed(42)
