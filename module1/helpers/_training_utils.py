@@ -188,18 +188,16 @@ def train_model(X_train, X_test, y_train, y_test, model_type, params,
         return model, test_metrics
 
 
-def save_results(results_baseline, results_engineered, total_elapsed,
-                 phase1_elapsed, phase2_elapsed):
+def save_results(results_engineered, total_elapsed, phase1_elapsed):
     """Save experiment results to CSV and timing summary to text file"""
     output_dir = "outputs"
     os.makedirs(output_dir, exist_ok=True)
 
-    results_baseline.to_csv(f"{output_dir}/baseline_results.csv", index=False)
     results_engineered.to_csv(f"{output_dir}/engineered_results.csv", index=False)
 
     # Save timing summary to a text file
     timing_summary_path = f"{output_dir}/execution_timing.txt"
-    total_experiments = len(results_baseline) + len(results_engineered)
+    total_experiments = len(results_engineered)
 
     with open(timing_summary_path, 'w') as f:
         f.write("=" * 80 + "\n")
@@ -208,35 +206,23 @@ def save_results(results_baseline, results_engineered, total_elapsed,
         f.write(f"Total Experiments: {total_experiments}\n")
         f.write(f"Total Time: {total_elapsed:.2f} seconds ({total_elapsed/60:.2f} minutes)\n")
         f.write(f"Average per Experiment: {total_elapsed/total_experiments:.2f} seconds\n")
-        f.write(f"Phase 1 (Baseline): {phase1_elapsed:.2f} seconds\n")
-        f.write(f"Phase 2 (Engineered): {phase2_elapsed:.2f} seconds\n")
+        f.write(f"Phase 1 (Engineered): {phase1_elapsed:.2f} seconds\n")
 
     print(f"\n💾 Results saved to {output_dir}/")
-    print(f"   • baseline_results.csv")
     print(f"   • engineered_results.csv")
     print(f"   • execution_timing.txt")
 
 
-def print_summary(results_baseline, results_engineered):
+def print_summary(results_engineered):
     """Print comprehensive experiment summary"""
     print("\n" + "=" * 80)
     print("EXPERIMENT SUMMARY & PERFORMANCE METRICS")
     print("=" * 80)
 
-    # Find best models
-    best_baseline = results_baseline.loc[results_baseline['roc_auc'].idxmax()]
+    # Find best model
     best_engineered = results_engineered.loc[results_engineered['roc_auc'].idxmax()]
 
-    print("\n📊 BEST BASELINE MODEL:")
-    print(f"  Model: {best_baseline['model_type']} (Config {best_baseline['config']})")
-    print(f"  SMOTE: {best_baseline['smote']}")
-    print(f"  Accuracy: {best_baseline['accuracy']:.4f}")
-    print(f"  Precision: {best_baseline['precision']:.4f}")
-    print(f"  Recall: {best_baseline['recall']:.4f}")
-    print(f"  F1-Score: {best_baseline['f1']:.4f}")
-    print(f"  ROC-AUC: {best_baseline['roc_auc']:.4f}")
-
-    print("\n📊 BEST ENGINEERED MODEL:")
+    print("\n📊 BEST MODEL (WITH ENGINEERED FEATURES):")
     print(f"  Model: {best_engineered['model_type']} (Config {best_engineered['config']})")
     print(f"  SMOTE: {best_engineered['smote']}")
     print(f"  Accuracy: {best_engineered['accuracy']:.4f}")
@@ -245,30 +231,19 @@ def print_summary(results_baseline, results_engineered):
     print(f"  F1-Score: {best_engineered['f1']:.4f}")
     print(f"  ROC-AUC: {best_engineered['roc_auc']:.4f}")
 
-    # Calculate improvement
-    auc_improvement = (best_engineered['roc_auc'] - best_baseline['roc_auc']) / best_baseline['roc_auc'] * 100
-    precision_improvement = (best_engineered['precision'] - best_baseline['precision']) / best_baseline['precision'] * 100
-
-    print(f"\n📈 IMPROVEMENT WITH FEATURE ENGINEERING:")
-    print(f"  ROC-AUC: {auc_improvement:+.2f}%")
-    print(f"  Precision: {precision_improvement:+.2f}%")
-
     # SMOTE impact analysis
     print("\n📊 SMOTE IMPACT ANALYSIS:")
 
-    for feature_type, results in [('Baseline', results_baseline), ('Engineered', results_engineered)]:
-        print(f"\n  {feature_type} Features:")
+    # Group by model type and SMOTE
+    smote_comparison = results_engineered.groupby(['model_type', 'smote'])[['precision', 'recall', 'f1']].mean()
 
-        # Group by model type and SMOTE
-        smote_comparison = results.groupby(['model_type', 'smote'])[['precision', 'recall', 'f1']].mean()
+    for model_type in results_engineered['model_type'].unique():
+        if (model_type, False) in smote_comparison.index and (model_type, True) in smote_comparison.index:
+            no_smote = smote_comparison.loc[(model_type, False)]
+            with_smote = smote_comparison.loc[(model_type, True)]
 
-        for model_type in results['model_type'].unique():
-            if (model_type, False) in smote_comparison.index and (model_type, True) in smote_comparison.index:
-                no_smote = smote_comparison.loc[(model_type, False)]
-                with_smote = smote_comparison.loc[(model_type, True)]
+            precision_change = (with_smote['precision'] - no_smote['precision']) / no_smote['precision'] * 100
+            recall_change = (with_smote['recall'] - no_smote['recall']) / no_smote['recall'] * 100
 
-                precision_change = (with_smote['precision'] - no_smote['precision']) / no_smote['precision'] * 100
-                recall_change = (with_smote['recall'] - no_smote['recall']) / no_smote['recall'] * 100
-
-                print(f"    {model_type}:")
-                print(f"      Precision: {precision_change:+.2f}% | Recall: {recall_change:+.2f}%")
+            print(f"    {model_type}:")
+            print(f"      Precision: {precision_change:+.2f}% | Recall: {recall_change:+.2f}%")

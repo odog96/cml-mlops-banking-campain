@@ -267,6 +267,21 @@ This is where ML moves from experimental to operational:
 
 **Purpose:** Build an automated workflow that takes new customer data, prepares it, and generates predictions at scale.
 
+⚠️ **IMPORTANT NOTE - Lab Environment Only:**
+```
+In this lab, we use the TRAINING DATA for inference demonstration to show you how the model
+responds and to validate the pipeline works end-to-end.
+
+IN PRODUCTION, you would NEVER feed training data back to a deployed model. This is lab-only
+practice to help you understand:
+  • How data flows through the preprocessing pipeline
+  • How the model generates predictions
+  • How to interpret results and validate model behavior
+
+Real-world inference uses completely NEW, unseen data from actual customers or business
+scenarios. Training data is for model development only.
+```
+
 **The Two-Job Pattern (Simulating Real Production):**
 
 In production, inference is typically broken into stages:
@@ -342,10 +357,13 @@ Predictions (1,000 predictions + scores)
 
 **Understanding the Output Files:**
 
+**⚠️ Lab Note:** In this lab, `raw_inference_data.csv` contains records sampled from the training dataset for demonstration purposes. In production, inference data would come from completely separate sources (new customers, recent transactions, etc.) that the model has never seen during training.
+
 1. **`inference_data/raw_inference_data.csv`** (Input)
    - Original customer features as they arrive
    - No feature engineering yet
    - This is what a production system would feed in
+   - *In this lab: sampled from training data for demo purposes*
 
 2. **`inference_data/engineered_inference_data.csv`** (Intermediate)
    - Same customers after feature engineering
@@ -372,6 +390,8 @@ In production:
 ### Step 6: Inference Deep Dive
 
 **Purpose:** Explore the inference process interactively and understand how the model makes predictions.
+
+⚠️ **Note:** This notebook demonstrates inference using a single record from the training data for educational purposes. In production, you'd use completely new, unseen customer data.
 
 **Interactive Exploration:**
 
@@ -425,6 +445,56 @@ In a real deployment, applications would query this endpoint continuously. Later
 - A/B testing different models
 - Batch prediction jobs
 - Model versioning and rollback
+
+### ⚠️ Important: Configure Your Model Endpoint
+
+Before running the inference scripts (`05_2_inference_predict.py` and `06_Inference_101.ipynb`), you **must update** the MODEL_ENDPOINT and ACCESS_KEY with your own deployed model's credentials.
+
+**Step 1: Find Your Model Endpoint**
+
+1. In your Cloudera AI project, go to the **Models** tab
+2. Click on your deployed model (e.g., "bank_marketing_model")
+3. Click the **Overview** tab
+4. Scroll to the **"Instructions for importing requests"** section
+5. You'll see code that looks like:
+   ```python
+   r = requests.post('https://modelservice.ml-dbfc64d1-783.go01-dem.ylcu-atmi.cloudera.site/model',
+                     data='{"accessKey":"mbtbh46x9h7wxj4cdkxz9fxl0nzmrefv",...}',
+                     headers={'Content-Type': 'application/json'})
+   ```
+
+**Step 2: Extract and Update Your Code**
+
+From the instructions above, copy:
+- **MODEL_ENDPOINT**: The full URL (the https://... part)
+- **ACCESS_KEY**: The accessKey value
+
+**Step 3: Update These Files**
+
+Update the following two files with YOUR endpoint and access key:
+
+1. **`05_2_inference_predict.py`** - Find this section:
+   ```python
+   MODEL_ENDPOINT = "https://modelservice.ml-dbfc64d1-783.go01-dem.ylcu-atmi.cloudera.site/model"
+   ACCESS_KEY = "mbtbh46x9h7wxj4cdkxz9fxl0nzmrefv"
+   ```
+   Replace with your values from Step 1.
+
+2. **`06_Inference_101.ipynb`** - Find this cell:
+   ```python
+   # Model endpoint
+   MODEL_ENDPOINT = "https://modelservice.ml-dbfc64d1-783.go01-dem.ylcu-atmi.cloudera.site/model"
+   ACCESS_KEY = "mbtbh46x9h7wxj4cdkxz9fxl0nzmrefv"
+   ```
+   Replace with your values from Step 1.
+
+**Why This Is Important:**
+
+Each deployed model has a unique endpoint and access key. Using the wrong credentials will cause inference requests to fail with authentication errors. This setup enables:
+- ✅ Secure API access (access key prevents unauthorized predictions)
+- ✅ Model tracking (each request is logged to your deployment)
+- ✅ Usage monitoring (see how many predictions are being made)
+- ✅ Resource management (limit concurrent requests)
 
 ---
 

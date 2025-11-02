@@ -6,11 +6,12 @@ Automated test runner that executes all numbered scripts sequentially
 and tracks their execution status and any errors.
 
 Usage:
-    python test_runner.py                          # Run all scripts
+    python test_runner.py                          # Run all scripts (exits on first failure)
     python test_runner.py --skip 01,04             # Skip specific scripts
     python test_runner.py --only 01,02,03          # Run only specific scripts
     python test_runner.py --verbose                # Show full output
     python test_runner.py --timeout 300            # Set timeout per script (seconds)
+    python test_runner.py --no-exit-on-failure     # Continue running all tests even if one fails
 
 Output:
     - Execution summary to console
@@ -32,7 +33,8 @@ class TestRunner:
     """Runs all numbered scripts in the module1 directory sequentially."""
 
     def __init__(self, module_path: str = None, verbose: bool = False,
-                 timeout: int = 600, skip: List[str] = None, only: List[str] = None):
+                 timeout: int = 600, skip: List[str] = None, only: List[str] = None,
+                 exit_on_failure: bool = True):
         """
         Initialize the test runner.
 
@@ -42,6 +44,7 @@ class TestRunner:
             timeout: Timeout for each script in seconds (default: 600)
             skip: List of script numbers to skip (e.g., ['04', '06'])
             only: List of script numbers to run (e.g., ['01', '02', '03'])
+            exit_on_failure: Exit immediately when first test fails (default: True)
         """
         if module_path is None:
             # Get the parent of helpers folder (module1 directory)
@@ -52,6 +55,7 @@ class TestRunner:
         self.timeout = timeout
         self.skip_scripts = set(skip or [])
         self.only_scripts = set(only or [])
+        self.exit_on_failure = exit_on_failure
 
         self.results = {}
         self.start_time = None
@@ -232,10 +236,17 @@ class TestRunner:
         print(f"Start time: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Timeout per script: {self.timeout}s")
         print(f"Verbose: {self.verbose}")
+        print(f"Exit on failure: {self.exit_on_failure}")
 
         for script_name, description in self.pipeline:
             result = self.run_script(script_name, description)
             self.results[script_name] = result
+
+            # Exit immediately on first failure if flag is set
+            if self.exit_on_failure and result['status'] == 'FAILED':
+                print(f"\n⚠️  EXITING: First test failure detected")
+                self.end_time = datetime.now()
+                sys.exit(1)
 
         self.end_time = datetime.now()
         duration = (self.end_time - self.start_time).total_seconds()
@@ -352,11 +363,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python test_runner.py                    # Run all scripts
-  python test_runner.py --skip 04          # Skip script 04
-  python test_runner.py --only 01,02,03    # Run only scripts 01, 02, 03
-  python test_runner.py --verbose          # Show full output
-  python test_runner.py --timeout 300      # 5 minute timeout per script
+  python test_runner.py                        # Run all scripts (exit on first failure)
+  python test_runner.py --skip 04              # Skip script 04
+  python test_runner.py --only 01,02,03        # Run only scripts 01, 02, 03
+  python test_runner.py --verbose              # Show full output
+  python test_runner.py --timeout 300          # 5 minute timeout per script
+  python test_runner.py --no-exit-on-failure   # Continue even if a test fails
         """
     )
 
@@ -394,6 +406,13 @@ Examples:
         help='Path to module1 directory (auto-detected if not provided)'
     )
 
+    parser.add_argument(
+        '--no-exit-on-failure',
+        action='store_false',
+        dest='exit_on_failure',
+        help='Continue running all tests even if one fails'
+    )
+
     args = parser.parse_args()
 
     # Parse skip and only lists
@@ -406,7 +425,8 @@ Examples:
         verbose=args.verbose,
         timeout=args.timeout,
         skip=skip_list,
-        only=only_list
+        only=only_list,
+        exit_on_failure=args.exit_on_failure
     )
 
     results = runner.run_all()

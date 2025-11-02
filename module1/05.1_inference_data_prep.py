@@ -16,7 +16,7 @@ Workflow:
 
 Output: engineered_inference_data.csv (ready for model predictions)
 
-Next step: 06_inference_predict.py
+Next step: 05.2_inference_predict.py
 """
 
 import os
@@ -248,7 +248,7 @@ def main():
     print("\n" + "=" * 80)
     print("✅ Inference data preparation complete!")
     print("=" * 80)
-    print("\n🚀 Next step: python 06_inference_predict.py")
+    print("\n🚀 Next step: python 05.2_inference_predict.py")
     print("=" * 80)
 
 

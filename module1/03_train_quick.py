@@ -103,7 +103,7 @@ def main():
 
     print("=" * 80)
     print("Module 1 - Step 3: QUICK Model Training with MLflow")
-    print("MODE: QUICK (1 model × 2 configs × 2 SMOTE variants × 2 feature sets = 8 runs)")
+    print("MODE: QUICK (1 model × 2 configs × 2 SMOTE variants = 4 runs)")
     print("=" * 80)
     print(f"\nStart time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -111,36 +111,12 @@ def main():
     setup_mlflow()
     df = load_data()
 
-    # ==================== BASELINE EXPERIMENTS ====================
+    # ==================== ENGINEERED EXPERIMENTS ====================
     print("\n" + "=" * 80)
-    print("PHASE 1: BASELINE FEATURES (WITHOUT ENGAGEMENT SCORE)")
+    print("PHASE 1: ENGINEERED FEATURES (WITH ENGAGEMENT SCORE)")
     print("=" * 80)
 
     phase1_start = time.time()
-
-    X_baseline, y, preprocessor_base, feature_engineer_base = preprocess_for_training(df, include_engagement=False)
-    X_train_base, X_test_base, y_train, y_test = split_data(
-        X_baseline, y,
-        test_size=MODEL_CONFIG["test_size"],
-        random_state=MODEL_CONFIG["random_state"]
-    )
-
-    results_baseline = run_quick_experiments(
-        X_train_base, X_test_base, y_train, y_test,
-        experiment_name="baseline",
-        include_engagement=False,
-        preprocessor=preprocessor_base,
-        feature_engineer=feature_engineer_base
-    )
-
-    phase1_elapsed = time.time() - phase1_start
-
-    # ==================== ENGINEERED EXPERIMENTS ====================
-    print("\n" + "=" * 80)
-    print("PHASE 2: ENGINEERED FEATURES (WITH ENGAGEMENT SCORE)")
-    print("=" * 80)
-
-    phase2_start = time.time()
 
     X_engineered, y, preprocessor_eng, feature_engineer_eng = preprocess_for_training(df, include_engagement=True)
     X_train_eng, X_test_eng, y_train, y_test = split_data(
@@ -157,27 +133,25 @@ def main():
         feature_engineer=feature_engineer_eng
     )
 
-    phase2_elapsed = time.time() - phase2_start
+    phase1_elapsed = time.time() - phase1_start
 
     # ==================== SUMMARY AND RESULTS ====================
     total_elapsed = time.time() - script_start_time
-    total_experiments = len(results_baseline) + len(results_engineered)
+    total_experiments = len(results_engineered)
 
     print("\n" + "=" * 80)
     print("⏱️  EXECUTION TIMING:")
     print("=" * 80)
-    print(f"  Phase 1 (Baseline):       {phase1_elapsed:7.2f} seconds")
-    print(f"  Phase 2 (Engineered):     {phase2_elapsed:7.2f} seconds")
+    print(f"  Phase 1 (Engineered):     {phase1_elapsed:7.2f} seconds")
     print(f"  Total execution time:     {total_elapsed:7.2f} seconds ({total_elapsed/60:.2f} minutes)")
     print(f"  Average per experiment:   {total_elapsed/total_experiments:.2f} seconds")
     print(f"  End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Print comprehensive summary
-    print_summary(results_baseline, results_engineered)
+    print_summary(results_engineered)
 
     # Save results
-    save_results(results_baseline, results_engineered, total_elapsed,
-                 phase1_elapsed, phase2_elapsed)
+    save_results(results_engineered, total_elapsed, phase1_elapsed)
 
     print("\n" + "=" * 80)
     print("✅ QUICK TRAINING COMPLETE!")
