@@ -89,28 +89,31 @@ The artificial dataset includes:
 
 **What it does**:
 1. Reads BATCH_SIZE from top of script (hardcoded, like 01_get_predictions.py)
-2. Calculates num_periods = TOTAL_SAMPLES / BATCH_SIZE
-3. Calculates degradation_rate to spread degradation evenly across all periods
-4. Loads engineered inference data from Module 1
-5. Loads predictions from Module 1
+2. Loads engineered inference data from Module 1
+3. Loads predictions from Module 1
+4. Calculates num_periods = actual_total_samples / BATCH_SIZE
+5. Calculates degradation_rate to spread degradation evenly across all periods
 6. Creates artificial ground truth labels with progressive corruption
 7. Saves `artificial_ground_truth_data.csv` and `ground_truth_metadata.json`
 
 **Configuration** (hardcoded at top of script):
 ```python
-BATCH_SIZE = 50              # Must match BATCH_SIZE in 01_get_predictions.py
-TOTAL_SAMPLES = 1000         # Expected dataset size from module1
+BATCH_SIZE = 50  # Must match BATCH_SIZE in 01_get_predictions.py
+```
 
-num_periods = TOTAL_SAMPLES // BATCH_SIZE           # = 1000 / 50 = 20
-degradation_rate = (0.95 - 0.5) / num_periods       # Spread across all periods
+Then calculated from actual data:
+```python
+total_samples = len(engineered_data)  # Loaded from module1
+num_periods = total_samples // BATCH_SIZE
+degradation_rate = (0.95 - 0.5) / num_periods  # Spread across all periods
 ```
 
 **To Change Settings**:
-Edit the hardcoded values at the top of the script:
+Edit the hardcoded value at the top of the script:
 ```python
-BATCH_SIZE = 50              # Change to match your batch size
-TOTAL_SAMPLES = 1000         # Change if your dataset size is different
+BATCH_SIZE = 50  # Change to match your batch size
 ```
+Number of periods will be automatically calculated based on actual data size.
 
 **Output**:
 - `data/artificial_ground_truth_data.csv` (full dataset with labels)
@@ -274,15 +277,15 @@ This creates:
 - `data/artificial_ground_truth_data.csv` (full dataset with labels)
 - `data/ground_truth_metadata.json` (period boundaries)
 
-**Configuration**: Edit the hardcoded values at the top of `00_prepare_artificial_data.py`:
+**Configuration**: Edit the hardcoded value at the top of `00_prepare_artificial_data.py`:
 ```python
-BATCH_SIZE = 50              # Must match BATCH_SIZE in 01_get_predictions.py
-TOTAL_SAMPLES = 1000         # Expected dataset size
+BATCH_SIZE = 50  # Must match BATCH_SIZE in 01_get_predictions.py
 ```
 
-The number of periods will be automatically calculated as:
-- `num_periods = 1000 / BATCH_SIZE`
-- Example: BATCH_SIZE=50 → 20 periods
+The script will:
+1. Load actual data from module1
+2. Calculate `num_periods = actual_total_samples / BATCH_SIZE`
+3. Automatically determine degradation rate based on number of periods
 
 ### Step 2: Create CML Jobs
 

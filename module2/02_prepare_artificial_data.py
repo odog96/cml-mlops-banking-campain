@@ -35,7 +35,6 @@ import random
 
 # Configuration
 BATCH_SIZE = 50  # Must match BATCH_SIZE in 01_get_predictions.py
-TOTAL_SAMPLES = 1000  # Expected dataset size from module1
 
 
 def load_engineered_data(data_path):
@@ -164,20 +163,6 @@ def main():
     # Configuration (hardcoded at top of script)
     print(f"\nConfiguration:")
     print(f"  BATCH_SIZE: {BATCH_SIZE}")
-    print(f"  TOTAL_SAMPLES: {TOTAL_SAMPLES}")
-
-    # Number of periods = total dataset size / batch size
-    # This ensures periods align with batch processing in 01_get_predictions.py
-    num_periods = TOTAL_SAMPLES // BATCH_SIZE
-
-    initial_accuracy = 0.95  # 95% match in period 0
-    # Degradation rate: spread degradation evenly across all periods to reach ~50% by last period
-    degradation_rate = (initial_accuracy - 0.5) / num_periods
-
-    print(f"  Number of periods: {num_periods} (= {TOTAL_SAMPLES} / {BATCH_SIZE})")
-    print(f"  Initial accuracy: {initial_accuracy*100:.1f}%")
-    print(f"  Degradation rate per period: {degradation_rate*100:.2f}%")
-    print(f"  Final period accuracy: ~{max(0.5, initial_accuracy - (num_periods * degradation_rate))*100:.1f}%")
 
     # Set random seed for reproducibility
     random.seed(42)
@@ -189,6 +174,22 @@ def main():
 
     engineered_data = load_engineered_data("module1/inference_data/engineered_inference_data.csv")
     predictions = load_predictions("module1/inference_data/predictions.csv")
+
+    # Calculate periods from actual data size
+    total_samples = len(engineered_data)
+    num_periods = total_samples // BATCH_SIZE
+
+    initial_accuracy = 0.95  # 95% match in period 0
+    # Degradation rate: spread degradation evenly across all periods to reach ~50% by last period
+    degradation_rate = (initial_accuracy - 0.5) / num_periods
+
+    print(f"\n✓ Calculated configuration from data:")
+    print(f"  Total samples: {total_samples}")
+    print(f"  Batch size: {BATCH_SIZE}")
+    print(f"  Number of periods: {num_periods} (= {total_samples} / {BATCH_SIZE})")
+    print(f"  Initial accuracy: {initial_accuracy*100:.1f}%")
+    print(f"  Degradation rate per period: {degradation_rate*100:.2f}%")
+    print(f"  Final period accuracy: ~{max(0.5, initial_accuracy - (num_periods * degradation_rate))*100:.1f}%")
 
     # ==================== CREATE GROUND TRUTH ====================
     print("\nPHASE 2: Create Artificial Ground Truth with Degradation")
