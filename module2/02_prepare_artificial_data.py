@@ -158,9 +158,11 @@ def main():
     print("-" * 80)
 
     # Configuration
-    num_periods = 5
+    # Number of periods = total dataset size / batch size
+    # With 1000 samples and batch size 50, we get 20 periods
+    num_periods = 20
     initial_accuracy = 0.95  # 95% match in period 0
-    degradation_rate = 0.05   # 5% accuracy drop per period
+    degradation_rate = 0.025  # 2.5% accuracy drop per period (reaches ~50% by period 20)
 
     # Set random seed for reproducibility
     random.seed(42)

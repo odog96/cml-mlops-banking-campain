@@ -4,20 +4,32 @@ This module implements a comprehensive model monitoring pipeline that tracks pre
 
 ## Overview
 
-The monitoring pipeline consists of 4 jobs that orchestrate together:
+The monitoring pipeline consists of 4 scripts that orchestrate together:
 
 ```
 00_prepare_artificial_data.py (One-time setup)
     ↓
-01_get_predictions.py (Period N - batch predictions with tracking)
-    ↓
-02_load_ground_truth.py (Period N - load labels)
-    ↓
-03_check_model.py (Period N - accuracy validation & orchestration)
-    ↓ (if not degraded and not last period)
-01_get_predictions.py (Period N+1)
-    ↓ (repeats until degradation or end)
+01_get_predictions.py (Period 0 - batch processing)
+    ├─ Process batch 0 → Track metrics
+    ├─ Process batch 1 → Track metrics
+    ├─ Process batch 2 → Track metrics
+    └─ ... (all batches) → Trigger 02_load_ground_truth
+         ↓
+    02_load_ground_truth.py (Period 0 - load labels)
+         ↓ Trigger 03_check_model
+    03_check_model.py (Period 0 - validate accuracy & decide)
+         ↓ (if not degraded and not last period)
+    01_get_predictions.py (Period 1 - next period)
+         ↓ (repeats for each period until degradation or end of data)
 ```
+
+**Job Execution Pattern**:
+- Number of periods = Total data size / Batch size
+- With 1000 samples and batch size 50 = 20 periods
+- Each job (01, 02, 03) runs **20 times total** (once per period)
+- 01_get_predictions processes ALL batches in a period before triggering 02
+- 02_load_ground_truth loads ALL labels for a period before triggering 03
+- 03_check_model validates accuracy for a period, then decides: continue to next period or exit
 
 ## Key Features
 
@@ -57,12 +69,13 @@ The artificial dataset includes:
 - **period**: Which time period (0, 1, 2, ...) each sample belongs to
 - **Probability scores**: probability_class_0, probability_class_1
 
-**Degradation Pattern**:
-- Period 0: 95% accuracy (95% of artificial labels match predictions)
-- Period 1: 90% accuracy (5% drop)
-- Period 2: 85% accuracy (5% drop)
-- Period 3: 80% accuracy (5% drop)
-- Period 4: 75% accuracy (5% drop)
+**Degradation Pattern** (with 20 periods and 2.5% per-period drop):
+- Period 0: 95% accuracy (baseline)
+- Period 1: 92.5% accuracy (2.5% drop)
+- Period 5: 82.5% accuracy
+- Period 10: 72.5% accuracy
+- Period 15: 62.5% accuracy
+- Period 19: 52.5% accuracy (reaches ~50% by end)
 
 ---
 
@@ -78,14 +91,14 @@ The artificial dataset includes:
 1. Loads engineered inference data from Module 1
 2. Loads predictions from Module 1
 3. Creates artificial ground truth labels with progressive corruption
-4. Splits data into 5 periods with degrading accuracy
+4. Splits data into N periods where N = total_samples / batch_size (20 periods for 1000 samples)
 5. Saves `artificial_ground_truth_data.csv` and `ground_truth_metadata.json`
 
 **Configuration**:
 ```python
-num_periods = 5                    # Number of time periods
+num_periods = 20                   # = Total samples / Batch size (1000 / 50)
 initial_accuracy = 0.95            # 95% match in period 0
-degradation_rate = 0.05            # 5% drop per period
+degradation_rate = 0.025           # 2.5% drop per period
 ```
 
 **Output**:
@@ -109,19 +122,22 @@ python 00_prepare_artificial_data.py
 
 **What it does**:
 1. Loads period configuration from metadata
-2. Loads full dataset and extracts period data
-3. Processes predictions in batches
-4. For each prediction:
-   - Creates tracking record
-   - Calls `cdsw.track_delayed_metrics()` with prediction data
-5. Saves predictions to JSON
-6. Triggers next job: `02_load_ground_truth.py`
+2. Loads full dataset and extracts current PERIOD data
+3. Processes all batches for this period:
+   - For each batch:
+     - For each prediction:
+       - Creates tracking record
+       - Calls `cdsw.track_delayed_metrics()` with prediction data
+       - (metrics tracked to CML for monitoring)
+     - After batch completes: Triggers 02_load_ground_truth.py (for this batch)
+4. Saves all predictions for the period to JSON
+5. This job runs once per period (20 times if 20 periods)
 
 **Environment Variables**:
 - `PERIOD`: Current period (default: 0)
 - `BATCH_SIZE`: Samples per batch (default: 50)
-- `MODEL_NAME`: Deployed model name (default: "LSTM-2")
-- `PROJECT_NAME`: CML project name (default: "SDWAN")
+- `MODEL_NAME`: Deployed model name (default: "banking_campaign_predictor")
+- `PROJECT_NAME`: CML project name (default: "CAI Baseline MLOPS")
 
 **Input**:
 - `data/artificial_ground_truth_data.csv`
@@ -153,8 +169,8 @@ PERIOD=0 python 01_get_predictions.py
 
 **Environment Variables**:
 - `PERIOD`: Current period number (0, 1, 2, ...) - inherited from previous job
-- `MODEL_NAME`: Deployed model name (default: "LSTM-2")
-- `PROJECT_NAME`: CML project name (default: "SDWAN")
+- `MODEL_NAME`: Deployed model name (default: "banking_campaign_predictor")
+- `PROJECT_NAME`: CML project name (default: "CAI Baseline MLOPS")
 
 **Input**:
 - `data/ground_truth_metadata.json`
@@ -190,8 +206,8 @@ PERIOD=0 python 01_get_predictions.py
 - `PERIOD`: Current period
 - `ACCURACY_THRESHOLD`: Minimum acceptable accuracy (default: 0.85 = 85%)
 - `DEGRADATION_THRESHOLD`: Max drop before alert (default: 0.05 = 5%)
-- `MODEL_NAME`: Deployed model name (default: "LSTM-2")
-- `PROJECT_NAME`: CML project name (default: "SDWAN")
+- `MODEL_NAME`: Deployed model name (default: "banking_campaign_predictor")
+- `PROJECT_NAME`: CML project name (default: "CAI Baseline MLOPS")
 
 **Input**:
 - `data/current_period_ground_truth.json`
@@ -282,12 +298,12 @@ The pipeline will then automatically orchestrate:
 
 The pipeline tracks accuracy degradation across periods:
 
-**Expected Results** (with default settings):
+**Expected Results** (with 20 periods, 2.5% drop per period, 85% threshold):
 - Period 0: ~95% accuracy ✓ PASS
-- Period 1: ~90% accuracy ✓ PASS
-- Period 2: ~85% accuracy ✓ PASS
-- Period 3: ~80% accuracy ✓ PASS (within 5% degradation)
-- Period 4: ~75% accuracy ⚠ Could trigger alert (depends on threshold)
+- Period 1-3: ~92-87% accuracy ✓ PASS (gradual decline)
+- Period 4: ~85% accuracy ✓ PASS (at threshold)
+- Period 5+: <85% accuracy → Pipeline may exit based on degradation logic
+- Period 19: ~52% accuracy (final period, if reached)
 
 **Real-world Interpretation**:
 - First few periods: Model performs well
@@ -299,12 +315,20 @@ The pipeline tracks accuracy degradation across periods:
 
 ## Customization
 
-### Adjust Number of Periods
+### Number of Periods
 
-Edit `00_prepare_artificial_data.py`:
+The number of periods is calculated automatically:
 ```python
-num_periods = 5  # Change this to desired number
+num_periods = total_samples / batch_size
+# Example: 1000 samples / 50 batch = 20 periods
 ```
+
+If you want to change it, edit `00_prepare_artificial_data.py`:
+```python
+num_periods = 20  # This is calculated as total_samples / batch_size
+```
+
+**Important**: The periods should match your batch processing pattern to ensure each job runs once per period.
 
 ### Adjust Degradation Rate
 
