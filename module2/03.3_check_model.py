@@ -68,7 +68,8 @@ PROJECT_NAME = os.environ.get("PROJECT_NAME", "CAI Baseline MLOPS")
 parser = argparse.ArgumentParser(description='Check model accuracy for a given period')
 parser.add_argument('--period', type=str, required=True,
                     help='Period parameter as (current_period,total_periods), e.g., "0,19"')
-args = parser.parse_args()
+# Use parse_known_args to handle Jupyter/IPython arguments that may be present
+args, unknown = parser.parse_known_args()
 
 # Extract PERIOD and TOTAL_PERIODS from parameter
 # ============================================================
