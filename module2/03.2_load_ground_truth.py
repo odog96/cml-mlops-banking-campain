@@ -3,30 +3,37 @@ Module 2 - Step 2: Load Ground Truth
 ====================================
 
 This job loads the ground truth labels for the current period.
-It is called by 01_get_predictions.py after predictions are made.
+It is called by Job 3.1 (Get Predictions) after predictions are made.
+
+PARAMETER-BASED STATE MANAGEMENT:
+This job uses a parameter tuple (current_period, total_periods) to track
+pipeline state, NOT environment variables.
 
 This script:
-1. Loads ground truth metadata (period boundaries)
-2. Reads artificial ground truth dataset
-3. Extracts labels for the current period
-4. Saves period-specific ground truth for use by check_model job
-5. Triggers the next job (check_model) via cmlapi
+1. Parse period parameter from command-line arguments
+2. Loads ground truth metadata (period boundaries)
+3. Reads artificial ground truth dataset
+4. Extracts labels for the current period
+5. Saves period-specific ground truth for use by check_model job
+6. Triggers the next job (check_model) via cmlapi
+
+Parameter Format:
+  - Format: (current_period, total_periods)
+  - Example: (0, 19) means period 0 of 19 total periods
+  - Passed from Job 3.1 via command-line arguments
 
 Input:
   - data/ground_truth_metadata.json (period configuration)
   - data/artificial_ground_truth_data.csv (full dataset with labels)
-  - PERIOD environment variable (current period number, default: 0)
+  - Parameter tuple (from Job 3.1)
 
 Output:
   - data/current_period_ground_truth.json (labels for current period)
-  - Triggers: 03_check_model.py (via cmlapi)
+  - Triggers: Job 3.3 (Check Model) with parameter
 
 Environment Variables:
-  PERIOD: Current period number (0, 1, 2, etc.) - inherited from previous job
-  MODEL_NAME: Name of deployed model (default: "LSTM-2")
-  PROJECT_NAME: Name of CML project (default: "SDWAN")
-  CDSW_API_URL: CML API endpoint (auto-set by CML)
-  CDSW_APIV2_KEY: CML API key (auto-set by CML)
+  MODEL_NAME: Name of deployed model (default: "banking_campaign_predictor")
+  PROJECT_NAME: Name of CML project (default: "CAI Baseline MLOPS")
 """
 
 import pandas as pd
@@ -35,33 +42,31 @@ import os
 import sys
 from datetime import datetime
 import cmlapi
+import argparse
 
-# Environment configuration
+# Configuration
 # ============================================================
-# PERIOD is EXPLICITLY PASSED from Job 03.1 to this job
-# (Job 03.1 → Job 03.2 → Job 03.3, each passing PERIOD explicitly)
-#
-# CRITICAL FIX (addresses CML environment variable inheritance issue):
-# Previously, Job 03.1 and 03.2 were NOT passing PERIOD explicitly.
-# CML does NOT automatically inherit parent job's environment variables!
-# Without explicit passing, the pipeline would loop infinitely on PERIOD=0.
-# Now all jobs explicitly pass PERIOD via job_run_request.environment_variables.
-#
-# How PERIOD flows through the pipeline:
-#   Job 03.1: Receives PERIOD=0 → creates predictions_period_0.json
-#             → triggers Job 03.2 with environment_variables={"PERIOD": "0"}
-#
-#   Job 03.2: Receives PERIOD=0 → creates current_period_ground_truth.json
-#             → triggers Job 03.3 with environment_variables={"PERIOD": "0"}
-#
-#   Job 03.3: Receives PERIOD=0 → validates accuracy
-#             If continuing: triggers Job 03.1 with environment_variables={"PERIOD": "1"}
-#
-# The PERIOD environment variable is essential for loading correct period data!
-# ============================================================
-PERIOD = int(os.environ.get("PERIOD", "0"))
 MODEL_NAME = os.environ.get("MODEL_NAME", "banking_campaign_predictor")
 PROJECT_NAME = os.environ.get("PROJECT_NAME", "CAI Baseline MLOPS")
+
+# Parse command-line arguments for period parameter
+# ============================================================
+parser = argparse.ArgumentParser(description='Load ground truth for a given period')
+parser.add_argument('--period', type=str, required=True,
+                    help='Period parameter as (current_period,total_periods), e.g., "0,19"')
+args = parser.parse_args()
+
+# Extract PERIOD and TOTAL_PERIODS from parameter
+# ============================================================
+try:
+    parts = args.period.split(',')
+    PERIOD = int(parts[0])
+    TOTAL_PERIODS = int(parts[1])
+    print(f"Parameter provided: period {PERIOD} of {TOTAL_PERIODS}")
+except (ValueError, IndexError):
+    print(f"ERROR: Invalid parameter format. Expected 'current_period,total_periods'")
+    print(f"  Example: --period 0,19")
+    sys.exit(1)
 
 print("=" * 80)
 print("Module 2 - Step 2: LOAD GROUND TRUTH")
@@ -150,12 +155,18 @@ def save_period_labels(period_labels, output_path="data/current_period_ground_tr
     print(f"\n✓ Saved period labels to: {output_path}")
 
 
-def trigger_next_job():
+def trigger_next_job(period, total_periods):
     """
     Trigger the next job in the pipeline (03_check_model.py).
 
-    This searches for the job by name 'Check Model' within the current project.
-    The job will use the current PERIOD environment variable.
+    PARAMETER-BASED STATE PASSING:
+    Passes period state as a parameter tuple: (current_period, total_periods)
+    NOT via environment variables (which don't persist between job runs in CML).
+
+    Parameter Format:
+    - Format: "current_period,total_periods"
+    - Example: "0,19" (period 0 of 19 total periods)
+    - Passed to next job via command-line arguments
     """
     try:
         # Initialize CML API client
@@ -186,14 +197,11 @@ def trigger_next_job():
 
         job_id = job_response.jobs[0].id
 
-        # Create job run request with explicit environment variables
-        # CRITICAL: Must explicitly pass PERIOD to the next job!
-        # This follows the same pattern as Job 3.3's trigger_next_period()
-        # CML does NOT inherit environment variables from parent job.
+        # Create job run request with period parameter passed as argument
         job_run_request = cmlapi.CreateJobRunRequest()
-        job_run_request.environment_variables = {
-            "PERIOD": str(PERIOD)  # Explicitly pass current period to Check Model job
-        }
+        # Pass period parameter as command-line argument
+        period_param = f"{period},{total_periods}"
+        job_run_request.arguments = ["--period", period_param]
 
         job_run = client.create_job_run(
             job_run_request,
@@ -201,7 +209,7 @@ def trigger_next_job():
             job_id=job_id
         )
 
-        print(f"\n✓ Triggered next job: Check Model")
+        print(f"\n✓ Triggered next job: Check Model (Period {period}/{total_periods})")
         print(f"  Job run ID: {job_run.id}")
 
     except Exception as e:
@@ -239,7 +247,7 @@ def main():
         print("\nPHASE 4: Trigger Next Job")
         print("-" * 80)
 
-        trigger_next_job()
+        trigger_next_job(PERIOD, TOTAL_PERIODS)
 
         # ==================== SUMMARY ====================
         print("\n" + "=" * 80)

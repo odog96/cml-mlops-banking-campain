@@ -5,35 +5,34 @@ Module 2 - Step 1: Get Predictions
 This job processes predictions for the current period in batches,
 tracking each prediction with Cloudera model monitoring metrics.
 
-This follows the API pattern from example_get_predictions.py but adapted for:
-- Batch processing by period (instead of streaming)
-- Artificial ground truth instead of embedded ground truth loading
-- Job orchestration (passes period number)
-- Configurable batch size for inference
+PARAMETER-BASED STATE MANAGEMENT:
+This job uses a parameter tuple (current_period, total_periods) to track
+pipeline state, NOT environment variables.
 
 Workflow:
-1. Load current period data (engineered features)
-2. Process data in batches of specified size
-3. For each batch:
-   - Make predictions (using known_prediction from artificial data)
-   - Track predictions with cml.track_delayed_metrics()
-   - Trigger load_ground_truth_module2 job to process this batch's ground truth
-4. load_ground_truth_module2 job loads the labels and triggers check_model_performance
-5. Prediction and ground truth are processed in parallel for each batch
+1. If no parameter provided: default to period 0, calculate total_periods from data
+2. Load current period data (engineered features)
+3. Process data in batches of specified size
+4. Track predictions with cml.track_delayed_metrics()
+5. Trigger Job 3.2 (Load Ground Truth) with current parameter
+
+Parameter Format:
+  - No parameter: defaults to (0, total_periods)
+  - With parameter: (current_period, total_periods)
+  - Example: (0, 19) means period 0 of 19 total periods
 
 Input:
   - data/artificial_ground_truth_data.csv (full dataset)
+  - Parameter tuple (optional)
 
 Output:
-  - Tracked metrics in CML model monitoring
   - data/predictions_period_{PERIOD}.json (predictions for this period)
-  - Triggers: load_ground_truth_module2 job after each batch (via cmlapi)
+  - Triggers: Job 3.2 with parameter
 
 Environment Variables:
-  PERIOD: Current period number (default: 0)
-  BATCH_SIZE: Samples per batch (default: 50)
-  MODEL_NAME: Name of deployed model (default: "LSTM-2")
-  PROJECT_NAME: Name of CML project (default: "SDWAN")
+  BATCH_SIZE: Samples per batch (default: 100)
+  MODEL_NAME: Name of deployed model (default: "banking_campaign_predictor")
+  PROJECT_NAME: Name of CML project (default: "CAI Baseline MLOPS")
 """
 
 import pandas as pd
@@ -45,31 +44,39 @@ import time
 import cml
 import cmlapi
 import numpy as np
+import argparse
 
-# Environment configuration
+# Configuration
 # ============================================================
-# CRITICAL: BATCH_SIZE MUST MATCH the value used in Job 02!
-#
-# How this job knows the period boundaries:
-#   1. PERIOD tells us which period to process (0, 1, 2, ...)
-#   2. ground_truth_metadata.json contains period_boundaries for PERIOD
-#   3. Period boundaries were calculated using: num_periods = total_samples / BATCH_SIZE
-#
-# If BATCH_SIZE doesn't match between Job 02 and this job:
-#   - Period boundaries will be wrong
-#   - This job will extract incorrect data ranges
-#   - Predictions won't align with ground truth labels
-#
-# Job 02 creates metadata with this formula:
-#   period_0: samples 0-100
-#   period_1: samples 100-200  (when BATCH_SIZE=100)
-#
-# This job must use the same BATCH_SIZE or period boundaries are meaningless!
-# ============================================================
-PERIOD = int(os.environ.get("PERIOD", "0"))
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "100"))
 MODEL_NAME = os.environ.get("MODEL_NAME", "banking_campaign_predictor")
 PROJECT_NAME = os.environ.get("PROJECT_NAME", "CAI Baseline MLOPS")
+
+# Parse command-line arguments for period parameter
+# ============================================================
+parser = argparse.ArgumentParser(description='Process predictions for a given period')
+parser.add_argument('--period', type=str, default=None,
+                    help='Period parameter as (current_period,total_periods), e.g., "0,19"')
+args = parser.parse_args()
+
+# Extract PERIOD and TOTAL_PERIODS from parameter
+# ============================================================
+if args.period is None:
+    # No parameter provided: start at period 0, calculate total from data
+    PERIOD = 0
+    TOTAL_PERIODS = None  # Will be calculated from data
+    print(f"No parameter provided: defaulting to period 0")
+else:
+    # Parameter provided: parse it
+    try:
+        parts = args.period.split(',')
+        PERIOD = int(parts[0])
+        TOTAL_PERIODS = int(parts[1])
+        print(f"Parameter provided: period {PERIOD} of {TOTAL_PERIODS}")
+    except (ValueError, IndexError):
+        print(f"ERROR: Invalid parameter format. Expected 'current_period,total_periods'")
+        print(f"  Example: --period 0,19")
+        sys.exit(1)
 
 print("=" * 80)
 print("Module 2 - Step 3: GET PREDICTIONS")
@@ -155,7 +162,7 @@ def load_full_dataset(data_path="data/artificial_ground_truth_data.csv"):
     return df
 
 
-def process_batch(batch_df, batch_num, cr_number, client, proj_id):
+def process_batch(batch_df, batch_num, cr_number, client, proj_id, period, total_periods):
     """
     Process a batch of predictions with Cloudera tracking.
 
@@ -169,6 +176,8 @@ def process_batch(batch_df, batch_num, cr_number, client, proj_id):
         cr_number: Deployment CRN for tracking
         client: CML API client for job triggering
         proj_id: Project ID for job triggering
+        period: Current period number
+        total_periods: Total number of periods
     """
     predictions_tracked = []
 
@@ -210,7 +219,8 @@ def process_batch(batch_df, batch_num, cr_number, client, proj_id):
     print(f"  ✓ Batch {batch_num} complete ({len(predictions_tracked)} tracked)")
 
     # Trigger load_ground_truth job after each batch
-    trigger_load_ground_truth_job(client, proj_id)
+    # Pass period parameter to next job
+    trigger_load_ground_truth_job(client, proj_id, period, total_periods)
 
     return predictions_tracked
 
@@ -230,6 +240,13 @@ def main():
 
         metadata = load_period_metadata()
         full_df = load_full_dataset()
+
+        # Calculate TOTAL_PERIODS if not provided
+        # ==================== CRITICAL ====================
+        nonlocal TOTAL_PERIODS
+        if TOTAL_PERIODS is None:
+            TOTAL_PERIODS = metadata['num_periods']
+            print(f"\n✓ Calculated total periods from metadata: {TOTAL_PERIODS}")
 
         # Extract data for this period
         period_info = metadata["period_boundaries"][f"period_{PERIOD}"]
@@ -255,7 +272,7 @@ def main():
             batch_end = min(batch_start + BATCH_SIZE, len(period_df))
 
             batch_df = period_df.iloc[batch_start:batch_end]
-            batch_predictions = process_batch(batch_df, batch_num, cr_number, client, proj_id)
+            batch_predictions = process_batch(batch_df, batch_num, cr_number, client, proj_id, PERIOD, TOTAL_PERIODS)
 
             all_predictions.extend(batch_predictions)
 
@@ -306,28 +323,24 @@ def main():
         sys.exit(1)
 
 
-def trigger_load_ground_truth_job(client, proj_id):
+def trigger_load_ground_truth_job(client, proj_id, period, total_periods):
     """
-    Trigger the Load Ground Truth job with current period.
+    Trigger the Load Ground Truth job with period parameter.
 
-    JOB ORCHESTRATION PATTERN:
-    ===========================
-    This function discovers and triggers the next job by NAME, not ID.
+    PARAMETER-BASED STATE PASSING:
+    ===============================
+    Passes period state as a parameter tuple: (current_period, total_periods)
+    NOT via environment variables (which don't persist between job runs in CML).
 
-    Why by name?
-    - Job names are human-readable and stable
-    - Job IDs can change if job is deleted/recreated
-    - Enables flexible job management without code changes
+    Parameter Format:
+    - Format: "current_period,total_periods"
+    - Example: "0,19" (period 0 of 19 total periods)
+    - Passed to next job via command-line arguments
 
     Job Discovery:
     - Searches project for job named "Load Ground Truth"
     - Must match EXACTLY (case-sensitive)
     - Returns first matching job
-
-    State Passing:
-    - Current PERIOD is used in predictions file
-    - Next job loads that same file
-    - Metadata ensures period boundaries match
 
     Error Handling:
     - If job not found: Continues gracefully (CML not configured)
@@ -340,8 +353,6 @@ def trigger_load_ground_truth_job(client, proj_id):
 
     try:
         # Search for the Load Ground Truth job by name within the project
-        # NOTE: Job name must match EXACTLY: "Load Ground Truth"
-        # Check job name in CML UI if trigger doesn't work!
         job_response = client.list_jobs(
             proj_id,
             search_filter=json.dumps({"name": "Load Ground Truth"})
@@ -354,15 +365,11 @@ def trigger_load_ground_truth_job(client, proj_id):
 
         job_id = job_response.jobs[0].id
 
-        # Create job run request with explicit environment variables
-        # CRITICAL: Must explicitly pass PERIOD to the next job!
-        # CML does NOT inherit environment variables from parent job.
-        # If we don't pass PERIOD here, Job 3.2 will default to PERIOD=0,
-        # causing the pipeline to loop infinitely on period 0.
+        # Create job run request with period parameter passed as argument
         job_run_request = cmlapi.CreateJobRunRequest()
-        job_run_request.environment_variables = {
-            "PERIOD": str(PERIOD)  # Explicitly pass current period to next job
-        }
+        # Pass period parameter as command-line argument
+        period_param = f"{period},{total_periods}"
+        job_run_request.arguments = ["--period", period_param]
 
         job_run = client.create_job_run(
             job_run_request,
@@ -370,7 +377,7 @@ def trigger_load_ground_truth_job(client, proj_id):
             job_id=job_id
         )
 
-        print(f"  ✓ Triggered job: Load Ground Truth (Period {PERIOD})")
+        print(f"  ✓ Triggered job: Load Ground Truth (Period {period}/{total_periods})")
         print(f"    Job run ID: {job_run.id}")
 
     except Exception as e:

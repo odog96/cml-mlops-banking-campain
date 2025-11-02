@@ -5,22 +5,33 @@ Module 2 - Step 4: Check Model
 This job validates model accuracy for the current period and orchestrates
 the monitoring pipeline. This follows the API pattern from example_check_model.py.
 
+PARAMETER-BASED STATE MANAGEMENT:
+This job uses a parameter tuple (current_period, total_periods) to track
+pipeline state, NOT environment variables.
+
 Workflow:
-1. Load period predictions from 02_get_predictions.py
-2. Load period ground truth from 01_load_ground_truth.py
-3. Calculate accuracy metrics
-4. Check if accuracy has degraded (statistically significant)
-5. Decision logic:
+1. Parse period parameter from command-line arguments
+2. Load period predictions from 03.1_get_predictions.py
+3. Load period ground truth from 03.2_load_ground_truth.py
+4. Calculate accuracy metrics
+5. Check if accuracy has degraded (statistically significant)
+6. Decision logic:
    - If accuracy degraded significantly → Flag alert and EXIT
-   - If this is the last period → EXIT pipeline
-   - Otherwise → Trigger 01_load_ground_truth.py for next period
+   - If this is the last period (PERIOD == TOTAL_PERIODS) → EXIT pipeline
+   - Otherwise → Trigger next period via 03.1_get_predictions.py with PERIOD+1
 
 This implements the model monitoring with degradation detection that the user specified.
 
+Parameter Format:
+  - Format: (current_period, total_periods)
+  - Example: (0, 19) means period 0 of 19 total periods
+  - Passed from Job 3.2 via command-line arguments
+
 Input:
-  - data/current_period_ground_truth.json (from 01_load_ground_truth.py)
-  - data/predictions_period_{PERIOD}.json (from 02_get_predictions.py)
+  - data/current_period_ground_truth.json (from 03.2_load_ground_truth.py)
+  - data/predictions_period_{PERIOD}.json (from 03.1_get_predictions.py)
   - data/ground_truth_metadata.json (configuration)
+  - Parameter tuple (from Job 3.2)
 
 Output:
   - data/check_model_results.json (accuracy report)
@@ -28,7 +39,6 @@ Output:
   - Job triggers (via cmlapi)
 
 Environment Variables:
-  PERIOD: Current period number
   ACCURACY_THRESHOLD: Minimum acceptable accuracy (default: 0.85)
   DEGRADATION_THRESHOLD: Minimum accuracy drop to flag as degraded (default: 0.05)
   MODEL_NAME: Name of deployed model
@@ -43,28 +53,40 @@ from datetime import datetime
 import numpy as np
 import cmlapi
 import cml
+import argparse
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-# Environment configuration
+# Configuration
 # ============================================================
-# PERIOD is EXPLICITLY PASSED from Job 03.2 to this job
-#
-# This job is UNIQUE in the pipeline: it decides whether to continue to next period
-# If continuing: it explicitly passes PERIOD+1 to Job 03.1 (see trigger_next_period())
-#
-# The complete PERIOD flow:
-#   Job 03.1 → explicitly passes PERIOD to Job 03.2
-#   Job 03.2 → explicitly passes PERIOD to Job 03.3
-#   Job 03.3 → if continuing, explicitly passes PERIOD+1 to Job 03.1
-#
-# This explicit passing is CRITICAL because CML does NOT inherit parent job's
-# environment variables. Without this, the pipeline loops infinitely on PERIOD=0.
-# ============================================================
-PERIOD = int(os.environ.get("PERIOD", "0"))
 ACCURACY_THRESHOLD = float(os.environ.get("ACCURACY_THRESHOLD", "0.85"))
 DEGRADATION_THRESHOLD = float(os.environ.get("DEGRADATION_THRESHOLD", "0.05"))
 MODEL_NAME = os.environ.get("MODEL_NAME", "banking_campaign_predictor")
 PROJECT_NAME = os.environ.get("PROJECT_NAME", "CAI Baseline MLOPS")
+
+# Parse command-line arguments for period parameter
+# ============================================================
+parser = argparse.ArgumentParser(description='Check model accuracy for a given period')
+parser.add_argument('--period', type=str, required=True,
+                    help='Period parameter as (current_period,total_periods), e.g., "0,19"')
+args = parser.parse_args()
+
+# Extract PERIOD and TOTAL_PERIODS from parameter
+# ============================================================
+try:
+    parts = args.period.split(',')
+    PERIOD = int(parts[0])
+    TOTAL_PERIODS = int(parts[1])
+    print(f"Parameter provided: period {PERIOD} of {TOTAL_PERIODS}")
+except (ValueError, IndexError):
+    print(f"ERROR: Invalid parameter format. Expected 'current_period,total_periods'")
+    print(f"  Example: --period 0,19")
+    sys.exit(1)
+
+# Check for exit condition: if PERIOD == TOTAL_PERIODS, we've completed all periods
+# ============================================================
+if PERIOD == TOTAL_PERIODS:
+    print(f"All periods completed! (Period {PERIOD} = Total {TOTAL_PERIODS})")
+    sys.exit(0)
 
 print("=" * 80)
 print("Module 2 - Step 4: CHECK MODEL")
@@ -275,11 +297,16 @@ def track_metrics_to_cml(metrics, cr_number, period):
         print(f"⚠ Could not track metrics to CML: {e}")
 
 
-def trigger_next_period(client, proj_id):
+def trigger_next_period(client, proj_id, period, total_periods):
     """
     Trigger Get Predictions for next period.
 
     This is the ORCHESTRATION DECISION POINT for the entire pipeline.
+
+    PARAMETER-BASED STATE PASSING:
+    ==============================
+    Passes period state as a parameter tuple: (current_period, total_periods)
+    NOT via environment variables (which don't persist between job runs in CML).
 
     Key difference from trigger functions in Jobs 3.1 and 3.2:
     - Job 3.1 passes PERIOD (current) to Job 3.2
@@ -289,13 +316,18 @@ def trigger_next_period(client, proj_id):
     This is how the pipeline progresses through periods:
       Period 0 → Period 1 → Period 2 → ... → Last Period → EXIT
 
+    Parameter Format:
+    - Format: "current_period,total_periods"
+    - Example: "0,19" (period 0 of 19 total periods)
+    - Passed to next job via command-line arguments
+
     Without this increment, the pipeline would loop on the same period forever.
     """
     if not client or not proj_id:
         return
 
     try:
-        next_period = PERIOD + 1
+        next_period = period + 1
 
         # Search for Get Predictions job by name within the project
         job_response = client.list_jobs(
@@ -313,9 +345,9 @@ def trigger_next_period(client, proj_id):
         # CRITICAL: This is the only place where PERIOD increments!
         # Jobs 3.1 and 3.2 pass current PERIOD, but this job increments it.
         job_run_request = cmlapi.CreateJobRunRequest()
-        job_run_request.environment_variables = {
-            "PERIOD": str(next_period)  # Increment period for next iteration
-        }
+        # Pass period parameter as command-line argument
+        period_param = f"{next_period},{total_periods}"
+        job_run_request.arguments = ["--period", period_param]
 
         job_run = client.create_job_run(
             job_run_request,
@@ -323,7 +355,7 @@ def trigger_next_period(client, proj_id):
             job_id=job_id
         )
 
-        print(f"\n✓ Triggered next period: Get Predictions for period {next_period}")
+        print(f"\n✓ Triggered next period: Get Predictions (Period {next_period}/{total_periods})")
         print(f"  Job run ID: {job_run.id}")
 
     except Exception as e:
@@ -427,7 +459,7 @@ def main():
         print("-" * 80)
 
         if action == "CONTINUE_NEXT_PERIOD":
-            trigger_next_period(client, proj_id)
+            trigger_next_period(client, proj_id, PERIOD, TOTAL_PERIODS)
 
         elif action == "EXIT_DEGRADATION":
             print(f"\n⚠ Pipeline stopped due to model degradation")
