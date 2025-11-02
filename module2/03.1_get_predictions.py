@@ -368,9 +368,9 @@ def trigger_load_ground_truth_job(client, proj_id, period, total_periods):
 
         # Create job run request with period parameter passed as argument
         job_run_request = cmlapi.CreateJobRunRequest()
-        # Pass period parameter as command-line argument
+        # Pass period parameter as command-line argument (as a single string)
         period_param = f"{period},{total_periods}"
-        job_run_request.arguments = ["--period", period_param]
+        job_run_request.arguments = f"--period {period_param}"
 
         job_run = client.create_job_run(
             job_run_request,
