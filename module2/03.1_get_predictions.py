@@ -244,7 +244,7 @@ def main():
 
         # Calculate TOTAL_PERIODS if not provided
         # ==================== CRITICAL ====================
-        nonlocal TOTAL_PERIODS
+        global TOTAL_PERIODS
         if TOTAL_PERIODS is None:
             TOTAL_PERIODS = metadata['num_periods']
             print(f"\n✓ Calculated total periods from metadata: {TOTAL_PERIODS}")
