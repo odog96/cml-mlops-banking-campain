@@ -66,13 +66,21 @@ PROJECT_NAME = os.environ.get("PROJECT_NAME", "CAI Baseline MLOPS")
 # Parse command-line arguments for period parameter
 # ============================================================
 parser = argparse.ArgumentParser(description='Check model accuracy for a given period')
-parser.add_argument('--period', type=str, required=True,
+parser.add_argument('--period', type=str, default=None,
                     help='Period parameter as (current_period,total_periods), e.g., "0,19"')
 # Use parse_known_args to handle Jupyter/IPython arguments that may be present
 args, unknown = parser.parse_known_args()
 
 # Extract PERIOD and TOTAL_PERIODS from parameter
 # ============================================================
+if args.period is None:
+    print(f"ERROR: --period parameter is required")
+    print(f"  Expected format: --period current_period,total_periods")
+    print(f"  Example: --period 0,19")
+    print(f"\nThis job should be triggered by Job 3.2 with the period parameter.")
+    print(f"Manual testing: Pass --period 0,19 when running this job")
+    sys.exit(1)
+
 try:
     parts = args.period.split(',')
     PERIOD = int(parts[0])
