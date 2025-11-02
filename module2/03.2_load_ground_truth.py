@@ -37,9 +37,31 @@ from datetime import datetime
 import cmlapi
 
 # Environment configuration
+# ============================================================
+# PERIOD is EXPLICITLY PASSED from Job 03.1 to this job
+# (Job 03.1 → Job 03.2 → Job 03.3, each passing PERIOD explicitly)
+#
+# CRITICAL FIX (addresses CML environment variable inheritance issue):
+# Previously, Job 03.1 and 03.2 were NOT passing PERIOD explicitly.
+# CML does NOT automatically inherit parent job's environment variables!
+# Without explicit passing, the pipeline would loop infinitely on PERIOD=0.
+# Now all jobs explicitly pass PERIOD via job_run_request.environment_variables.
+#
+# How PERIOD flows through the pipeline:
+#   Job 03.1: Receives PERIOD=0 → creates predictions_period_0.json
+#             → triggers Job 03.2 with environment_variables={"PERIOD": "0"}
+#
+#   Job 03.2: Receives PERIOD=0 → creates current_period_ground_truth.json
+#             → triggers Job 03.3 with environment_variables={"PERIOD": "0"}
+#
+#   Job 03.3: Receives PERIOD=0 → validates accuracy
+#             If continuing: triggers Job 03.1 with environment_variables={"PERIOD": "1"}
+#
+# The PERIOD environment variable is essential for loading correct period data!
+# ============================================================
 PERIOD = int(os.environ.get("PERIOD", "0"))
-MODEL_NAME = os.environ.get("MODEL_NAME", "LSTM-2")
-PROJECT_NAME = os.environ.get("PROJECT_NAME", "SDWAN")
+MODEL_NAME = os.environ.get("MODEL_NAME", "banking_campaign_predictor")
+PROJECT_NAME = os.environ.get("PROJECT_NAME", "CAI Baseline MLOPS")
 
 print("=" * 80)
 print("Module 2 - Step 2: LOAD GROUND TRUTH")
@@ -164,10 +186,13 @@ def trigger_next_job():
 
         job_id = job_response.jobs[0].id
 
-        # Create job run with PERIOD environment variable
+        # Create job run request with explicit environment variables
+        # CRITICAL: Must explicitly pass PERIOD to the next job!
+        # This follows the same pattern as Job 3.3's trigger_next_period()
+        # CML does NOT inherit environment variables from parent job.
         job_run_request = cmlapi.CreateJobRunRequest()
         job_run_request.environment_variables = {
-            "PERIOD": str(PERIOD)
+            "PERIOD": str(PERIOD)  # Explicitly pass current period to Check Model job
         }
 
         job_run = client.create_job_run(
@@ -178,7 +203,6 @@ def trigger_next_job():
 
         print(f"\n✓ Triggered next job: Check Model")
         print(f"  Job run ID: {job_run.id}")
-        print(f"  Period: {PERIOD}")
 
     except Exception as e:
         print(f"\n⚠ Could not trigger Check Model job: {e}")

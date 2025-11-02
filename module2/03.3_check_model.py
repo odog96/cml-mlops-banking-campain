@@ -46,11 +46,25 @@ import cml
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Environment configuration
+# ============================================================
+# PERIOD is EXPLICITLY PASSED from Job 03.2 to this job
+#
+# This job is UNIQUE in the pipeline: it decides whether to continue to next period
+# If continuing: it explicitly passes PERIOD+1 to Job 03.1 (see trigger_next_period())
+#
+# The complete PERIOD flow:
+#   Job 03.1 → explicitly passes PERIOD to Job 03.2
+#   Job 03.2 → explicitly passes PERIOD to Job 03.3
+#   Job 03.3 → if continuing, explicitly passes PERIOD+1 to Job 03.1
+#
+# This explicit passing is CRITICAL because CML does NOT inherit parent job's
+# environment variables. Without this, the pipeline loops infinitely on PERIOD=0.
+# ============================================================
 PERIOD = int(os.environ.get("PERIOD", "0"))
 ACCURACY_THRESHOLD = float(os.environ.get("ACCURACY_THRESHOLD", "0.85"))
 DEGRADATION_THRESHOLD = float(os.environ.get("DEGRADATION_THRESHOLD", "0.05"))
-MODEL_NAME = os.environ.get("MODEL_NAME", "LSTM-2")
-PROJECT_NAME = os.environ.get("PROJECT_NAME", "SDWAN")
+MODEL_NAME = os.environ.get("MODEL_NAME", "banking_campaign_predictor")
+PROJECT_NAME = os.environ.get("PROJECT_NAME", "CAI Baseline MLOPS")
 
 print("=" * 80)
 print("Module 2 - Step 4: CHECK MODEL")
@@ -262,7 +276,21 @@ def track_metrics_to_cml(metrics, cr_number, period):
 
 
 def trigger_next_period(client, proj_id):
-    """Trigger Get Predictions for next period."""
+    """
+    Trigger Get Predictions for next period.
+
+    This is the ORCHESTRATION DECISION POINT for the entire pipeline.
+
+    Key difference from trigger functions in Jobs 3.1 and 3.2:
+    - Job 3.1 passes PERIOD (current) to Job 3.2
+    - Job 3.2 passes PERIOD (current) to Job 3.3
+    - Job 3.3 passes PERIOD+1 (next) to Job 3.1  ← THIS JOB, INCREMENTING PERIOD
+
+    This is how the pipeline progresses through periods:
+      Period 0 → Period 1 → Period 2 → ... → Last Period → EXIT
+
+    Without this increment, the pipeline would loop on the same period forever.
+    """
     if not client or not proj_id:
         return
 
@@ -281,10 +309,12 @@ def trigger_next_period(client, proj_id):
 
         job_id = job_response.jobs[0].id
 
-        # Create job run with PERIOD environment variable for next period
+        # Create job run request for NEXT period (PERIOD + 1)
+        # CRITICAL: This is the only place where PERIOD increments!
+        # Jobs 3.1 and 3.2 pass current PERIOD, but this job increments it.
         job_run_request = cmlapi.CreateJobRunRequest()
         job_run_request.environment_variables = {
-            "PERIOD": str(next_period)
+            "PERIOD": str(next_period)  # Increment period for next iteration
         }
 
         job_run = client.create_job_run(

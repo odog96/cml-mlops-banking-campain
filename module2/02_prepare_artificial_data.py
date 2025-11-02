@@ -34,7 +34,21 @@ from datetime import datetime
 import random
 
 # Configuration
-BATCH_SIZE = 50  # Must match BATCH_SIZE in 01_get_predictions.py
+# ============================================================
+# CRITICAL: BATCH_SIZE must be synchronized with Job 03.1
+# If you change this value, you MUST also change it in:
+#   - Job 03.1: "Get Predictions" environment variable
+#   - Job 03.2: (inherited from Job 03.1)
+#   - Job 03.3: (inherited from Job 03.1)
+#
+# Example: If BATCH_SIZE=100:
+#   - 1,000 samples → 10 periods (1000 / 100)
+#   - Each job runs 10 times (once per period)
+#
+# The num_periods calculation depends on this value:
+#   num_periods = total_samples / BATCH_SIZE
+# ============================================================
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "100"))
 
 
 def load_engineered_data(data_path):
@@ -176,11 +190,21 @@ def main():
     predictions = load_predictions("module1/inference_data/predictions.csv")
 
     # Calculate periods from actual data size
+    # ==================== IMPORTANT ====================
+    # The number of periods is calculated from actual data size and BATCH_SIZE.
+    # This determines how many times each job (03.1, 03.2, 03.3) will run.
+    #
+    # num_periods = total_samples / BATCH_SIZE
+    #
+    # If this changes (e.g., different dataset), you must verify that
+    # Job 03.1's BATCH_SIZE environment variable is still correct!
+    # ====================================================
     total_samples = len(engineered_data)
     num_periods = total_samples // BATCH_SIZE
 
     initial_accuracy = 0.95  # 95% match in period 0
     # Degradation rate: spread degradation evenly across all periods to reach ~50% by last period
+    # This ensures: accuracy_period_N = initial_accuracy - (N * degradation_rate)
     degradation_rate = (initial_accuracy - 0.5) / num_periods
 
     print(f"\n✓ Calculated configuration from data:")

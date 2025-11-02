@@ -47,10 +47,29 @@ import cmlapi
 import numpy as np
 
 # Environment configuration
+# ============================================================
+# CRITICAL: BATCH_SIZE MUST MATCH the value used in Job 02!
+#
+# How this job knows the period boundaries:
+#   1. PERIOD tells us which period to process (0, 1, 2, ...)
+#   2. ground_truth_metadata.json contains period_boundaries for PERIOD
+#   3. Period boundaries were calculated using: num_periods = total_samples / BATCH_SIZE
+#
+# If BATCH_SIZE doesn't match between Job 02 and this job:
+#   - Period boundaries will be wrong
+#   - This job will extract incorrect data ranges
+#   - Predictions won't align with ground truth labels
+#
+# Job 02 creates metadata with this formula:
+#   period_0: samples 0-100
+#   period_1: samples 100-200  (when BATCH_SIZE=100)
+#
+# This job must use the same BATCH_SIZE or period boundaries are meaningless!
+# ============================================================
 PERIOD = int(os.environ.get("PERIOD", "0"))
-BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "50"))
-MODEL_NAME = os.environ.get("MODEL_NAME", "LSTM-2")
-PROJECT_NAME = os.environ.get("PROJECT_NAME", "SDWAN")
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "100"))
+MODEL_NAME = os.environ.get("MODEL_NAME", "banking_campaign_predictor")
+PROJECT_NAME = os.environ.get("PROJECT_NAME", "CAI Baseline MLOPS")
 
 print("=" * 80)
 print("Module 2 - Step 3: GET PREDICTIONS")
@@ -288,13 +307,41 @@ def main():
 
 
 def trigger_load_ground_truth_job(client, proj_id):
-    """Trigger the Load Ground Truth job with current period."""
+    """
+    Trigger the Load Ground Truth job with current period.
+
+    JOB ORCHESTRATION PATTERN:
+    ===========================
+    This function discovers and triggers the next job by NAME, not ID.
+
+    Why by name?
+    - Job names are human-readable and stable
+    - Job IDs can change if job is deleted/recreated
+    - Enables flexible job management without code changes
+
+    Job Discovery:
+    - Searches project for job named "Load Ground Truth"
+    - Must match EXACTLY (case-sensitive)
+    - Returns first matching job
+
+    State Passing:
+    - Current PERIOD is used in predictions file
+    - Next job loads that same file
+    - Metadata ensures period boundaries match
+
+    Error Handling:
+    - If job not found: Continues gracefully (CML not configured)
+    - If CML unavailable: Continues (development mode)
+    - If API fails: Reports warning but doesn't crash
+    """
     if not client or not proj_id:
         print("  ⚠ CML client not available, cannot trigger next job")
         return
 
     try:
         # Search for the Load Ground Truth job by name within the project
+        # NOTE: Job name must match EXACTLY: "Load Ground Truth"
+        # Check job name in CML UI if trigger doesn't work!
         job_response = client.list_jobs(
             proj_id,
             search_filter=json.dumps({"name": "Load Ground Truth"})
@@ -302,14 +349,19 @@ def trigger_load_ground_truth_job(client, proj_id):
 
         if not job_response.jobs:
             print(f"  ⚠ Job 'Load Ground Truth' not found in project")
+            print(f"     Please verify job name matches exactly (case-sensitive)")
             return
 
         job_id = job_response.jobs[0].id
 
-        # Create job run with PERIOD environment variable
+        # Create job run request with explicit environment variables
+        # CRITICAL: Must explicitly pass PERIOD to the next job!
+        # CML does NOT inherit environment variables from parent job.
+        # If we don't pass PERIOD here, Job 3.2 will default to PERIOD=0,
+        # causing the pipeline to loop infinitely on period 0.
         job_run_request = cmlapi.CreateJobRunRequest()
         job_run_request.environment_variables = {
-            "PERIOD": str(PERIOD)
+            "PERIOD": str(PERIOD)  # Explicitly pass current period to next job
         }
 
         job_run = client.create_job_run(
