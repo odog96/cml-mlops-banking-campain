@@ -4,56 +4,52 @@ This module implements a comprehensive model monitoring pipeline that tracks pre
 
 ## Overview
 
-The monitoring pipeline consists of 4 scripts that orchestrate together:
+The monitoring pipeline consists of **2 CML Jobs**:
 
 ```
-00_prepare_artificial_data.py (One-time setup)
+Job 1: 02_prepare_artificial_data.py (One-time setup)
     ↓
-01_get_predictions.py (Period 0 - batch processing)
-    ├─ Process batch 0 → Track metrics
-    ├─ Process batch 1 → Track metrics
-    ├─ Process batch 2 → Track metrics
-    └─ ... (all batches) → Trigger 02_load_ground_truth
-         ↓
-    02_load_ground_truth.py (Period 0 - load labels)
-         ↓ Trigger 03_check_model
-    03_check_model.py (Period 0 - validate accuracy & decide)
-         ↓ (if not degraded and not last period)
-    01_get_predictions.py (Period 1 - next period)
-         ↓ (repeats for each period until degradation or end of data)
+Job 2: 03_monitoring_pipeline.py (Integrated Monitoring)
+    ├─ Period 0: Get predictions → Load ground truth → Check model
+    ├─ Period 1: Get predictions → Load ground truth → Check model
+    ├─ Period 2: Get predictions → Load ground truth → Check model
+    └─ ... (repeats for each period until degradation or end of data)
 ```
 
 **Job Execution Pattern**:
 - Number of periods = Total data size / Batch size
-- With 1000 samples and batch size 50 = 20 periods
-- Each job (01, 02, 03) runs **20 times total** (once per period)
-- 01_get_predictions processes ALL batches in a period before triggering 02
-- 02_load_ground_truth loads ALL labels for a period before triggering 03
-- 03_check_model validates accuracy for a period, then decides: continue to next period or exit
+- With 1000 samples and batch size 250 = 4 periods
+- `03_monitoring_pipeline.py` runs **once** and processes **all periods sequentially**
+- Single job manages period state internally (no external state files needed)
+- Automatically detects degradation and exits gracefully
+- All results saved to `data/monitoring_results.json`
 
 ## Key Features
 
+- **Self-Contained Pipeline**: Single job manages all periods internally (no external state files or job chaining)
 - **Period-based Processing**: Splits data into multiple time periods for sequential monitoring
 - **Batch Predictions**: Processes predictions in configurable batch sizes
-- **Cloudera Integration**: Tracks metrics using `cdsw.track_delayed_metrics()` and `cdsw.track_aggregate_metrics()`
+- **Cloudera Integration**: Tracks metrics using `cml.track_delayed_metrics()` and `cml.track_aggregate_metrics()`
 - **Degradation Detection**: Automatically detects statistically significant accuracy drops
-- **Job Orchestration**: Each job triggers the next via `cmlapi` (when configured)
 - **Configurable Thresholds**: Adjust accuracy requirements and degradation sensitivity
+- **Comprehensive Logging**: Logs to both console and file (`data/monitoring_log.txt`)
 
 ## Quick Start
 
 1. **Prepare artificial data** (one-time):
    ```bash
-   python 00_prepare_artificial_data.py
+   python module2/02_prepare_artificial_data.py
    ```
 
-2. **Create CML jobs** with the 3 job scripts (01_get_predictions.py, 02_load_ground_truth.py, 03_check_model.py)
+2. **Create CML jobs** using the `01_create_jobs.ipynb` notebook:
+   - Creates Job 1: Prepare Artificial Data
+   - Creates Job 2: Monitor Pipeline (integrated)
 
 3. **Start monitoring**:
    ```bash
-   # Run first job (01_get_predictions) manually to start the pipeline
-   # Job will auto-trigger subsequent jobs (02_load_ground_truth → 03_check_model)
-   # If not degraded and not last period, 03_check_model will trigger 01_get_predictions for next period
+   # Run Job 1 (Prepare Artificial Data) manually via CML UI or API
+   # Job 2 (Monitor Pipeline) processes all periods sequentially
+   # Monitor results in data/monitoring_results.json
    ```
 
 ---
@@ -81,14 +77,14 @@ The artificial dataset includes:
 
 ## Scripts
 
-### 00_prepare_artificial_data.py
+### 02_prepare_artificial_data.py
 
-**Status**: One-time setup (run manually before starting pipeline)
+**Status**: One-time setup (run via CML Job 1)
 
 **Purpose**: Creates the artificial ground truth dataset with intentional accuracy degradation
 
 **What it does**:
-1. Reads BATCH_SIZE from top of script (hardcoded, like 01_get_predictions.py)
+1. Reads BATCH_SIZE from top of script (hardcoded)
 2. Loads engineered inference data from Module 1
 3. Loads predictions from Module 1
 4. Calculates num_periods = actual_total_samples / BATCH_SIZE
@@ -98,239 +94,155 @@ The artificial dataset includes:
 
 **Configuration** (hardcoded at top of script):
 ```python
-BATCH_SIZE = 50  # Must match BATCH_SIZE in 01_get_predictions.py
+BATCH_SIZE = 250  # Adjust based on how many periods you want
 ```
-
-Then calculated from actual data:
-```python
-total_samples = len(engineered_data)  # Loaded from module1
-num_periods = total_samples // BATCH_SIZE
-degradation_rate = (0.95 - 0.5) / num_periods  # Spread across all periods
-```
-
-**To Change Settings**:
-Edit the hardcoded value at the top of the script:
-```python
-BATCH_SIZE = 50  # Change to match your batch size
-```
-Number of periods will be automatically calculated based on actual data size.
 
 **Output**:
 - `data/artificial_ground_truth_data.csv` (full dataset with labels)
 - `data/ground_truth_metadata.json` (period boundaries)
 
-**Note**: This data will NOT be available at lab inception. Generate it manually before starting the monitoring pipeline.
-
-**Run**:
+**Run** (via CML Job 1):
 ```bash
-python 00_prepare_artificial_data.py
+python module2/02_prepare_artificial_data.py
 ```
 
 ---
 
-### 01_get_predictions.py
+### 03_monitoring_pipeline.py
 
-**Status**: CML Job (repeatable, one per period)
+**Status**: CML Job (Job 2 - the main monitoring pipeline)
 
-**Purpose**: Processes predictions for current period with Cloudera tracking
+**Purpose**: Consolidated monitoring pipeline that processes all periods sequentially
 
 **What it does**:
-1. Loads period configuration from metadata
-2. Loads full dataset and extracts current PERIOD data
-3. Processes all batches for this period:
-   - For each batch:
-     - For each prediction:
-       - Creates tracking record
-       - Calls `cdsw.track_delayed_metrics()` with prediction data
-       - (metrics tracked to CML for monitoring)
-     - After batch completes: Triggers 02_load_ground_truth.py (for this batch)
-4. Saves all predictions for the period to JSON
-5. This job runs once per period (20 times if 20 periods)
+1. **Phase 0 - Setup**: Initialize CML client, load metadata, load full dataset
+2. **Loop through all periods** (Period 0 to Period N):
+   - **Phase 1 - Get Predictions**:
+     - Extract period data
+     - Process predictions in batches
+     - Track metrics via `cml.track_delayed_metrics()`
+     - Save predictions to JSON
+   - **Phase 2 - Load Ground Truth**:
+     - Extract period labels
+     - Save labels to JSON
+   - **Phase 3 - Check Model**:
+     - Calculate accuracy metrics (accuracy, precision, recall, F1)
+     - Compare to previous period (degradation detection)
+     - Check if accuracy below threshold
+     - Track metrics via `cml.track_aggregate_metrics()`
+     - **Decision**:
+       - **If degraded**: Save results and exit gracefully (job completes with status 0)
+       - **If last period**: Save results and exit successfully
+       - **Otherwise**: Continue to next period
 
 **Environment Variables**:
-- `PERIOD`: Current period (default: 0)
-- `BATCH_SIZE`: Samples per batch (default: 50)
+- `BATCH_SIZE`: Samples per batch (default: 250)
 - `MODEL_NAME`: Deployed model name (default: "banking_campaign_predictor")
 - `PROJECT_NAME`: CML project name (default: "CAI Baseline MLOPS")
-
-**Input**:
-- `data/artificial_ground_truth_data.csv`
-
-**Output**:
-- `data/predictions_period_{PERIOD}.json` (predictions with metadata)
-- CML metrics (tracked via `cdsw`)
-- Triggers `02_load_ground_truth.py`
-
-**Example usage** (as CML job):
-```bash
-PERIOD=0 python 01_get_predictions.py
-```
-
----
-
-### 02_load_ground_truth.py
-
-**Status**: CML Job (repeatable, one per period)
-
-**Purpose**: Loads ground truth labels for the current period
-
-**What it does**:
-1. Loads period configuration from metadata
-2. Reads artificial ground truth dataset
-3. Extracts labels for current period
-4. Saves period-specific labels to JSON
-5. Triggers next job: `03_check_model.py`
-
-**Environment Variables**:
-- `PERIOD`: Current period number (0, 1, 2, ...) - inherited from previous job
-- `MODEL_NAME`: Deployed model name (default: "banking_campaign_predictor")
-- `PROJECT_NAME`: CML project name (default: "CAI Baseline MLOPS")
-
-**Input**:
-- `data/ground_truth_metadata.json`
-- `data/artificial_ground_truth_data.csv`
-
-**Output**:
-- `data/current_period_ground_truth.json` (labels for this period)
-- Triggers `03_check_model.py`
-
----
-
-### 03_check_model.py
-
-**Status**: CML Job (repeatable, one per period)
-
-**Purpose**: Validates model accuracy and orchestrates next action
-
-**What it does**:
-1. Loads predictions from `01_get_predictions.py`
-2. Loads ground truth from `02_load_ground_truth.py`
-3. Calculates accuracy metrics:
-   - Accuracy
-   - Precision
-   - Recall
-   - F1 Score
-4. Compares to previous period (degradation detection)
-5. Decision logic:
-   - **If degraded**: Flag alert and EXIT pipeline
-   - **If last period**: EXIT pipeline successfully
-   - **Otherwise**: Trigger `01_get_predictions.py` for next period
-
-**Environment Variables**:
-- `PERIOD`: Current period
 - `ACCURACY_THRESHOLD`: Minimum acceptable accuracy (default: 0.85 = 85%)
 - `DEGRADATION_THRESHOLD`: Max drop before alert (default: 0.05 = 5%)
-- `MODEL_NAME`: Deployed model name (default: "banking_campaign_predictor")
-- `PROJECT_NAME`: CML project name (default: "CAI Baseline MLOPS")
+
+**Command-line Arguments**:
+```bash
+# Run all periods (default 0 to total)
+python 03_monitoring_pipeline.py
+
+# Run specific period range
+python 03_monitoring_pipeline.py --start-period 0 --end-period 3
+
+# Run single period
+python 03_monitoring_pipeline.py --start-period 2 --end-period 2
+```
 
 **Input**:
-- `data/current_period_ground_truth.json`
-- `data/predictions_period_{PERIOD}.json`
-- `data/check_model_results.json` (previous period, optional)
-- `data/ground_truth_metadata.json`
+- `data/artificial_ground_truth_data.csv` (full dataset)
+- `data/ground_truth_metadata.json` (period configuration)
 
 **Output**:
-- `data/check_model_results.json` (accuracy report)
-- CML metrics (via `cdsw.track_aggregate_metrics()`)
-- Job trigger (either continue to next period or exit)
+- `data/predictions_period_{PERIOD}.json` (predictions per period)
+- `data/period_{PERIOD}_ground_truth.json` (labels per period)
+- `data/monitoring_results.json` (final summary with status)
+- `data/monitoring_log.txt` (detailed execution log)
 
-**Decision Matrix**:
-
-| Condition | Action |
-|-----------|--------|
-| Accuracy degraded > threshold | EXIT (degradation alert) |
-| Accuracy < minimum threshold | EXIT (degradation alert) |
-| Last period reached | EXIT (success) |
-| None of above | Continue to next period |
-
-**Metrics Tracked to CML**:
-```python
-cdsw.track_aggregate_metrics(
-    {
-        "accuracy": metrics["accuracy"],
-        "precision": metrics["precision"],
-        "recall": metrics["recall"],
-        "f1": metrics["f1"],
-        "period": period
-    },
-    model_deployment_crn=cr_number,
-)
-```
+**Key Advantages**:
+- ✅ **Single job** - No job chaining or state file dependencies
+- ✅ **Self-contained** - All period state managed internally
+- ✅ **Graceful degradation** - Exits with status 0 even when degradation detected
+- ✅ **Comprehensive logging** - All events logged to console and file
+- ✅ **Flexible execution** - Can run specific period ranges via command-line args
 
 ---
 
 ## Setup Instructions
 
-### Step 1: Prepare Artificial Data (One-time)
+### Step 1: Create CML Jobs Using Notebook
 
-**IMPORTANT**: Verify BATCH_SIZE matches between 00_prepare_artificial_data.py and 01_get_predictions.py
+Run the `01_create_jobs.ipynb` notebook to create 2 CML jobs:
 
 ```bash
 cd /home/cdsw/module2
 
-# Verify both scripts have the same BATCH_SIZE at the top
-# Then run data preparation:
-python 00_prepare_artificial_data.py
+# Open the notebook in your CML project
+# Run all cells to create the 2 jobs:
+# - Job 1: Prepare Artificial Data (02_prepare_artificial_data.py)
+# - Job 2: Monitor Pipeline (03_monitoring_pipeline.py)
 ```
 
-This creates:
-- `data/artificial_ground_truth_data.csv` (full dataset with labels)
-- `data/ground_truth_metadata.json` (period boundaries)
+The notebook will:
+1. Authenticate with CML API
+2. Query available ML runtimes
+3. Create Job 1: `02_prepare_artificial_data.py`
+4. Create Job 2: `03_monitoring_pipeline.py`
 
-**Configuration**: Edit the hardcoded value at the top of `00_prepare_artificial_data.py`:
+**Job Configuration:**
+
+**Job 1: Prepare Artificial Data**
+- Script: `module2/02_prepare_artificial_data.py`
+- CPU: 1 core
+- Memory: 2 GB
+- Environment: (uses defaults)
+
+**Job 2: Monitor Pipeline**
+- Script: `module2/03_monitoring_pipeline.py`
+- CPU: 2 cores
+- Memory: 4 GB
+- Environment: (uses defaults, can be customized)
+
+### Step 2: Configure BATCH_SIZE (Optional)
+
+Edit the `BATCH_SIZE` at the top of `02_prepare_artificial_data.py`:
 ```python
-BATCH_SIZE = 50  # Must match BATCH_SIZE in 01_get_predictions.py
+BATCH_SIZE = 250  # Adjust based on desired number of periods
 ```
 
-The script will:
+The script will automatically:
 1. Load actual data from module1
 2. Calculate `num_periods = actual_total_samples / BATCH_SIZE`
-3. Automatically determine degradation rate based on number of periods
-
-### Step 2: Create CML Jobs
-
-In CML project, create 3 jobs:
-
-**Job 1: get_predictions**
-- Script: `01_get_predictions.py`
-- Environment:
-  - `PERIOD=0` (initial period)
-  - `BATCH_SIZE=50` (MUST match the BATCH_SIZE used in Step 1)
-  - `MODEL_NAME=banking_campaign_predictor`
-  - `PROJECT_NAME=CAI Baseline MLOPS`
-- Schedule: Manual trigger (or scheduled)
-
-**Job 2: load_ground_truth**
-- Script: `02_load_ground_truth.py`
-- Environment:
-  - `MODEL_NAME=banking_campaign_predictor`
-  - `PROJECT_NAME=CAI Baseline MLOPS`
-- Schedule: Triggered by get_predictions
-
-**Job 3: check_model**
-- Script: `03_check_model.py`
-- Environment:
-  - `ACCURACY_THRESHOLD=0.85`
-  - `MODEL_NAME=banking_campaign_predictor`
-  - `PROJECT_NAME=CAI Baseline MLOPS`
-- Schedule: Triggered by load_ground_truth
-
-**Critical**: BATCH_SIZE in Job 1 MUST match the BATCH_SIZE used when running Step 1 (00_prepare_artificial_data.py)
+3. Determine degradation rate based on number of periods
 
 ### Step 3: Start Monitoring Pipeline
 
-Run the first job manually to start the pipeline:
+Run Job 1 to start the entire monitoring workflow:
 
 ```bash
-# Via CML UI: Run "get_predictions" job with PERIOD=0
-# Or via API: cmlapi.create_job_run(project_id=..., job_id=...)
+# Via CML UI:
+# 1. Go to Jobs tab
+# 2. Click on "Mod 2 Job 1: Prepare Artificial Data"
+# 3. Click "Run Now"
+# 4. Wait for completion
+
+# Then run Job 2:
+# 1. Click on "Mod 2 Job 2: Monitor Pipeline"
+# 2. Click "Run Now"
+# 3. Monitor execution in the job logs
 ```
 
-The pipeline will then automatically orchestrate:
-1. Get predictions (period 0, batch processing)
-2. Load ground truth (period 0, load labels)
-3. Check model (validates accuracy, decides next action)
-4. If not degraded and not last period, repeat starting with get_predictions for periods 1-4
+Job 2 will automatically:
+1. Load prepared data from Job 1
+2. Process all periods sequentially
+3. Detect degradation (if any)
+4. Save results to `data/monitoring_results.json`
+5. Log all activity to `data/monitoring_log.txt`
 
 ---
 
@@ -396,36 +308,39 @@ BATCH_SIZE=100  # Process 100 samples per batch
 
 ## Architecture Notes
 
-### Why Separate Scripts?
+### Single Job vs. Multiple Jobs
 
-1. **01_load_ground_truth.py**: Independent ground truth loading
-   - Not embedded in prediction script
-   - Can be reused for different data sources
-   - Keeps concerns separated
+The original design used **4 separate jobs**:
+- Job 1: Prepare Artificial Data
+- Job 2: Get Predictions (triggered per period)
+- Job 3: Load Ground Truth (triggered per period)
+- Job 4: Check Model (triggered per period)
 
-2. **02_get_predictions.py**: Batch prediction with tracking
-   - Follows example_get_predictions.py API pattern
-   - Uses `cdsw.track_delayed_metrics()` for individual predictions
-   - Configurable batch size for scalability
+The new design consolidates to **2 jobs**:
+- Job 1: Prepare Artificial Data (one-time)
+- Job 2: Monitor Pipeline (processes all periods in one execution)
 
-3. **03_check_model.py**: Validation and orchestration
-   - Follows example_check_model.py API pattern
-   - Uses `cdsw.track_aggregate_metrics()` for period-level metrics
-   - Controls pipeline flow (continue vs exit)
+**Why this is better:**
+1. ✅ **Simpler**: Single job manages all periods
+2. ✅ **Reliable**: No job chaining failures or state passing issues
+3. ✅ **Faster**: No overhead from starting multiple jobs
+4. ✅ **Cleaner logs**: All output in one execution
+5. ✅ **Self-contained**: No external state file dependencies
 
-### API Patterns
+### API Patterns Used
 
 The scripts follow Cloudera ML API patterns:
 
-**From example_get_predictions.py**:
-- `cdsw.track_delayed_metrics()` for individual prediction tracking
-- Batch processing with configurable size
-- Job orchestration via `cmlapi`
-
-**From example_check_model.py**:
-- `cdsw.track_aggregate_metrics()` for performance metrics
+**CML Integration**:
+- `cml.track_delayed_metrics()` for individual prediction tracking
+- `cml.track_aggregate_metrics()` for period-level metrics
 - Model deployment CRN retrieval
-- Job triggering with error handling
+- Optional job orchestration via `cmlapi`
+
+**Internal State Management**:
+- Period tracking via loop counter (no external files)
+- Results saved to JSON for inspection
+- Comprehensive logging to console and file
 
 ---
 
@@ -433,13 +348,16 @@ The scripts follow Cloudera ML API patterns:
 
 ```
 data/
-├── artificial_ground_truth_data.csv      # Initial: Engineered data + labels
-├── ground_truth_metadata.json            # Initial: Period configuration
-├── current_period_ground_truth.json      # Per period: Labels for current period
-├── predictions_period_0.json             # Per period: Predictions with metadata
+├── artificial_ground_truth_data.csv      # Created by Job 1: Engineered data + labels
+├── ground_truth_metadata.json            # Created by Job 1: Period configuration
+├── predictions_period_0.json             # Created by Job 2: Predictions per period
 ├── predictions_period_1.json
 ├── predictions_period_2.json
-└── check_model_results.json              # Per period: Accuracy metrics & decisions
+├── period_0_ground_truth.json            # Created by Job 2: Labels per period
+├── period_1_ground_truth.json
+├── period_2_ground_truth.json
+├── monitoring_results.json               # Created by Job 2: Final summary with all results
+└── monitoring_log.txt                    # Created by Job 2: Detailed execution log
 ```
 
 ---
@@ -510,45 +428,40 @@ Once monitoring is working:
 
 ## Example CML Job Configuration
 
-### Get Predictions Job
+### Job 1: Prepare Artificial Data
 
 ```yaml
-Name: get_predictions
-Script: module2/01_get_predictions.py
-Runtime: Python 3.9+
+Name: Mod 2 Job 1: Prepare Artificial Data
+Script: module2/02_prepare_artificial_data.py
+Runtime: Python 3.10 (2024.10+)
+CPU: 1 core
+Memory: 2 GB
 Environment:
-  PERIOD: 0
-  BATCH_SIZE: 50
-  MODEL_NAME: LSTM-2
-  PROJECT_NAME: SDWAN
-Trigger: Manual (or scheduled)
+  (uses defaults from script)
+Trigger: Manual (UI or API)
 ```
 
-### Load Ground Truth Job
+### Job 2: Monitor Pipeline
 
 ```yaml
-Name: load_ground_truth
-Script: module2/02_load_ground_truth.py
-Runtime: Python 3.9+
+Name: Mod 2 Job 2: Monitor Pipeline
+Script: module2/03_monitoring_pipeline.py
+Runtime: Python 3.10 (2024.10+)
+CPU: 2 cores
+Memory: 4 GB
 Environment:
-  MODEL_NAME: LSTM-2
-  PROJECT_NAME: SDWAN
-Trigger: By get_predictions job
+  BATCH_SIZE: 250 (optional, uses default if not set)
+  MODEL_NAME: banking_campaign_predictor (optional)
+  PROJECT_NAME: CAI Baseline MLOPS (optional)
+  ACCURACY_THRESHOLD: 0.85 (optional)
+  DEGRADATION_THRESHOLD: 0.05 (optional)
+Trigger: Manual (UI or API)
+Arguments: (optional)
+  --start-period 0
+  --end-period 3
 ```
 
-### Check Model Job
-
-```yaml
-Name: check_model
-Script: module2/03_check_model.py
-Runtime: Python 3.9+
-Environment:
-  ACCURACY_THRESHOLD: 0.85
-  DEGRADATION_THRESHOLD: 0.05
-  MODEL_NAME: LSTM-2
-  PROJECT_NAME: SDWAN
-Trigger: By load_ground_truth job
-```
+**Note**: Environment variables are optional; script has sensible defaults for all of them.
 
 ---
 

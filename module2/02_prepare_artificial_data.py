@@ -48,7 +48,7 @@ import random
 # The num_periods calculation depends on this value:
 #   num_periods = total_samples / BATCH_SIZE
 # ============================================================
-BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "100"))
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "250"))
 
 
 def load_engineered_data(data_path):
