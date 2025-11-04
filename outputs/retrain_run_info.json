@@ -1,0 +1,7 @@
+{
+  "run_id": "klu9-ofo5-aolf-pzrf",
+  "experiment_id": "p06v-h962-x3kb-p5m1",
+  "experiment_name": "banking_retraining_pipeline",
+  "model_name": "banking_campaign_predictor_v2",
+  "f1_score": 0.6343434343434343
+}

@@ -12,13 +12,16 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import f1_score, accuracy_score
 
-# Add parent directory for imports
+# Get the project root directory (CML jobs run from /home/cdsw)
 try:
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(os.path.dirname(script_dir))
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 except NameError:
-    script_dir = os.getcwd()
-    sys.path.append(script_dir)
+    # In Jupyter notebooks, __file__ is not defined
+    BASE_DIR = os.getcwd()
+
+# Add parent directory for imports
+script_dir = BASE_DIR
+sys.path.append(BASE_DIR)
     
 # Import from your project's helper scripts
 try:
@@ -29,18 +32,18 @@ except ImportError:
     # Define minimal config if imports fail
     MODEL_CONFIG = {
         "random_state": 42,
-        "categorical_features": ['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'poutcome'],
-        "numerical_features": ['age', 'balance', 'day', 'duration', 'campaign', 'pdays', 'previous']
+        "categorical_features": ['job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month', 'day_of_week', 'poutcome'],
+        "numerical_features": ['age', 'duration', 'campaign', 'pdays', 'previous', 'emp.var.rate', 'cons.price.idx', 'cons.conf.idx', 'euribor3m', 'nr.employed']
     }
-    def setup_mlflow():
-        mlflow.set_experiment("banking_retraining_pipeline")
+    def setup_mlflow(exp_name):
+        mlflow.set_experiment(exp_name)
 
 
 def main():
     """
     Main retraining pipeline.
     """
-    print("--- Starting Retraining Job (3/4) ---")
+    print("--- Starting Retraining Job (Step 3) ---")
 
     # 1. Setup MLflow experiment
     # We'll use a specific experiment name for retraining jobs
@@ -49,11 +52,16 @@ def main():
     
     # 2. Load both datasets
     try:
-        original_data = pd.read_csv("banking_train.csv")
-        new_batch = pd.read_csv("new_labeled_batch_01.csv")
+        # CML jobs execute from the project root directory (/home/cdsw)
+        original_data_path = os.path.join(BASE_DIR, "module1", "data", "bank-additional", "bank-additional-full.csv")
+        new_batch_path = os.path.join(BASE_DIR, "outputs", "new_labeled_batch_01.csv")
+
+        original_data = pd.read_csv(original_data_path, sep=";")
+        new_batch = pd.read_csv(new_batch_path)
         print(f"Loaded {len(original_data)} original records and {len(new_batch)} new records.")
     except FileNotFoundError:
-        print("❌ ERROR: Could not find 'banking_train.csv' or 'new_labeled_batch_01.csv'")
+        print("❌ ERROR: Could not find 'bank-additional-full.csv' or 'outputs/new_labeled_batch_01.csv'")
+        print("Did you run '2_simulate_labeling_job.py' first?")
         sys.exit(1)
 
     # 3. Combine them into a new, larger training set
@@ -62,7 +70,6 @@ def main():
 
     # 4. Define features (X) and target (y)
     TARGET = 'y'
-    # Use feature lists from MODEL_CONFIG for consistency
     categorical_features = MODEL_CONFIG.get('categorical_features')
     numerical_features = MODEL_CONFIG.get('numerical_features')
     
@@ -91,7 +98,6 @@ def main():
     # 6. Create the full model pipeline
     model_v2_pipeline = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        # Use a known, good classifier from your previous experiments
         ('classifier', RandomForestClassifier(n_estimators=100, random_state=MODEL_CONFIG.get("random_state", 42)))
     ])
 
@@ -137,13 +143,14 @@ def main():
             "f1_score": f1
         }
         
-        os.makedirs("outputs", exist_ok=True)
-        with open("outputs/retrain_run_info.json", "w") as f:
+        outputs_dir = os.path.join(BASE_DIR, "outputs")
+        os.makedirs(outputs_dir, exist_ok=True)
+        output_path = os.path.join(outputs_dir, "retrain_run_info.json")
+        with open(output_path, "w") as f:
             json.dump(retrain_info, f, indent=2)
 
-    print(f"\nSaved retraining info to: outputs/retrain_run_info.json")
-    print("--- Retraining Job Finished (3/4) ---")
-
+    print(f"\nSaved retraining info to: {output_path}")
+    print("--- Retraining Job Finished (Step 3) ---")
 
 if __name__ == "__main__":
     main()

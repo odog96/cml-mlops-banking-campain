@@ -9,16 +9,25 @@ print("=" * 80)
 print("Module 3 - Step 4: Register and Deploy (V1 API Pattern)")
 print("=" * 80)
 
+# Get the project root directory (CML jobs run from /home/cdsw)
+try:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+except NameError:
+    # In Jupyter notebooks, __file__ is not defined
+    BASE_DIR = os.getcwd()
+
 # ============================================================================
 # Step 1: Load info from the retraining job
 # ============================================================================
 print("\n[1/6] Loading info from retraining job...")
 
+RUN_INFO_FILE = os.path.join(BASE_DIR, "outputs", "retrain_run_info.json")
+
 try:
-    with open("outputs/retrain_run_info.json", "r") as f:
+    with open(RUN_INFO_FILE, "r") as f:
         retrain_info = json.load(f)
 except FileNotFoundError:
-    print("❌ ERROR: 'outputs/retrain_run_info.json' not found.")
+    print(f"❌ ERROR: '{RUN_INFO_FILE}' not found.")
     print("   Did you run '3_retrain_model.py' first?")
     sys.exit(1)
 
@@ -98,23 +107,16 @@ try:
     
 except ApiException as e:
     if "already has a model with that name" in str(e.body):
-        print(f"   ⚠️  Model endpoint already exists, getting it...")
+        print(f"   ⚠️  Model endpoint already exists, reusing it...")
         models = cml_client.list_models(project_id)
         cml_model = next((m for m in models.models if m.name == MODEL_NAME), None)
-        
+
         if not cml_model:
             print(f"   ❌ ERROR: Could not find existing model '{MODEL_NAME}'")
             sys.exit(1)
-        
-        print(f"   Deleting and recreating endpoint for new build...")
-        cml_client.delete_model(project_id, cml_model.id)
-        time.sleep(5)
-        
-        cml_model = cml_client.create_model(
-            body=create_model_request,
-            project_id=project_id
-        )
-        print(f"   ✅ Model endpoint recreated: {cml_model.id}")
+
+        print(f"   ✅ Reusing existing model endpoint: {cml_model.id}")
+        print(f"   (New model version will be deployed to this endpoint)")
     else:
         print(f"   ❌ ERROR: {e.reason}")
         print(f"   Body: {e.body}")
@@ -248,7 +250,8 @@ deployment_info = {
     "status": "Deployed" if deployment_id else "Built"
 }
 
-with open("outputs/deployment_info_v2.json", "w") as f:
+os.makedirs("outputs", exist_ok=True)
+with open(os.path.join("outputs", "deployment_info_v2.json"), "w") as f:
     json.dump(deployment_info, f, indent=2)
 
 print(f"\n💾 Saved to: outputs/deployment_info_v2.json")
