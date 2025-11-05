@@ -6,7 +6,7 @@ This hands-on lab teaches you the **complete machine learning operations (MLOps)
 
 ---
 
-## 📚 Lab Structure: 3 Modules
+## 📚 Lab Structure: 4 Modules
 
 ### **Module 1: Complete ML Workflow** 🚀
 **Duration:** 45-90 minutes
@@ -56,9 +56,25 @@ Learn to automate the entire MLOps lifecycle:
 
 ---
 
+### **Module 4: ONNX Model Conversion & Deployment** 📦
+**Duration:** 15-30 minutes
+**Prerequisites:** Complete Module 3
+
+[📖 View Module 4](./module4/)
+
+Learn to convert and deploy models in production-optimized format:
+- **Convert sklearn models to ONNX** for inference service compatibility
+- **Register ONNX models** in MLflow for versioning and tracking
+- **Enable Cloudera AI Inference** deployment with optimized runtime performance
+- **Handle mixed data types** (numerical and categorical features)
+
+**What you'll accomplish:** A production-ready ONNX model registered in MLflow, ready for deployment to Cloudera AI Inference Service.
+
+---
+
 ## 📊 Prerequisites: Understanding ML Evaluation Metrics
 
-Before you start, familiarize yourself with the metrics you'll be tracking throughout all three modules:
+Before you start, familiarize yourself with the metrics you'll be tracking throughout all four modules:
 
 [📖 View Presentation: ML Evaluation Metrics](./assets/ML_Evaluation_Metrics_Final.pdf)
 
@@ -73,7 +89,7 @@ Before you start, familiarize yourself with the metrics you'll be tracking throu
 
 ## 🎯 Learning Outcomes
 
-By completing all three modules, you'll understand:
+By completing all four modules, you'll understand:
 
 ✅ **How production ML systems work**
 - Complete data-to-predictions pipeline
@@ -132,7 +148,7 @@ Before you start, ensure you have:
 
 ```
 /home/cdsw/
-├── README_PROJECT_OVERVIEW.md          ← You are here
+├── README.md                           ← You are here
 ├── assets/
 │   └── ML_Evaluation_Metrics_Final.pdf ← Essential reading!
 ├── module1/                             ← START HERE
@@ -149,12 +165,14 @@ Before you start, ensure you have:
 │   ├── README.md
 │   ├── 02_prepare_artificial_data.py
 │   └── 03_monitoring_pipeline.py
-└── module3/                             ← AFTER Module 1 & 2
-    ├── README.md
-    ├── 1_check_drift.py
-    ├── 2_simulate_labeling_job.py
-    ├── 3_retrain_model.py
-    └── 4_register_and_deploy.py
+├── module3/                             ← AFTER Module 1 & 2
+│   ├── README.md
+│   ├── 1_check_drift.py
+│   ├── 2_simulate_labeling_job.py
+│   ├── 3_retrain_model.py
+│   └── 4_register_and_deploy.py
+└── module4/                             ← AFTER Module 3
+    └── create_onnx_model.py            ← ONNX conversion & registration
 ```
 
 ---
@@ -216,6 +234,12 @@ See the **Troubleshooting** section at the end of each module's README.
 - How to automatically trigger retraining
 - How to deploy improvements without manual intervention
 - How to build self-improving systems
+
+### By end of Module 4:
+- How to convert sklearn models to ONNX format
+- How to optimize models for inference service deployment
+- How to register production models with proper versioning
+- How to prepare models for high-performance serving
 
 ---
 
