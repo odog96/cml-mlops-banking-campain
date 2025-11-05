@@ -34,6 +34,27 @@ Job 2: 03_monitoring_pipeline.py (Integrated Monitoring)
 - **Configurable Thresholds**: Adjust accuracy requirements and degradation sensitivity
 - **Comprehensive Logging**: Logs to both console and file (`data/monitoring_log.txt`)
 
+## ⚠️ Important: Execution Location
+
+All Module 2 commands must be run from the **PROJECT ROOT** (`/home/cdsw`), not from the module2 directory.
+
+This is because Module 2 scripts reference data created by Module 1 using relative paths like:
+- `module1/inference_data/engineered_inference_data.csv`
+
+These paths assume you're running from the project root.
+
+```bash
+# ✓ CORRECT: Run from project root
+cd /home/cdsw
+python module2/02_prepare_artificial_data.py
+
+# ✗ WRONG: Do NOT run from module2 directory
+cd /home/cdsw/module2
+python 02_prepare_artificial_data.py  # This will fail!
+```
+
+---
+
 ## Quick Start
 
 ### Step 1: Prepare Artificial Data

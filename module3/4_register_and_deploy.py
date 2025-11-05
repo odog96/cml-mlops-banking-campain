@@ -33,7 +33,8 @@ except FileNotFoundError:
 
 run_id = retrain_info.get("run_id")
 experiment_id = retrain_info.get("experiment_id")
-MODEL_NAME = retrain_info.get("model_name", "banking_campaign_predictor_v2")
+#MODEL_NAME = retrain_info.get("model_name", "banking_campaign_predictor_v2")
+MODEL_NAME = os.environ.get("MODEL_NAME", "banking_campaign_predictor")
 f1_score = retrain_info.get("f1_score", 0.0)
 
 print(f"✅ Loaded info for retrained model:")

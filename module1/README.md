@@ -18,6 +18,23 @@ Welcome to Module 1! In this lab, you'll build a complete machine learning pipel
 
 ---
 
+## 📊 Understanding ML Evaluation Metrics (Prerequisites)
+
+Before diving into model training, familiarize yourself with the metrics you'll be tracking:
+
+[📖 View Presentation: ML Evaluation Metrics](../assets/ML_Evaluation_Metrics_Final.pdf)
+
+**Key metrics you'll encounter in this lab:**
+- **F1 Score** - Balance between precision and recall (important for imbalanced datasets)
+- **ROC-AUC** - Model's ability to distinguish between classes at various thresholds
+- **Accuracy** - Overall correctness (but can be misleading with imbalanced data)
+- **Precision** - Of predicted positives, how many were actually correct
+- **Recall** - Of actual positives, how many did we catch
+
+Each metric tells a different story about your model's performance. Understanding these is essential before evaluating your models in Steps 3 and 4.
+
+---
+
 ## Overview
 
 This lab walks you through building a **bank marketing prediction model** that classifies whether a customer will subscribe to a term deposit. You'll learn how to:
@@ -53,8 +70,8 @@ The lab is organized as a numbered sequence of scripts and notebooks:
 | 2 | `02_eda_notebook.ipynb` | Jupyter Notebook | Explore and visualize data patterns |
 | 3 | `03_train_quick.py` | Python Script | Train models with MLflow tracking |
 | 4 | `04_deploy.py` | Python Script | Deploy best model as API endpoint |
-| 5a | `05_1_inference_data_prep.py` | Python Script | Engineer features for inference |
-| 5b | `05_2_inference_predict.py` | Python Script | Generate predictions from new data |
+| 5a | `05.1_inference_data_prep.py` | Python Script | Engineer features for inference |
+| 5b | `05.2_inference_predict.py` | Python Script | Generate predictions from new data |
 | 6 | `06_Inference_101.ipynb` | Jupyter Notebook | Interactive inference exploration |
 
 Execute scripts in order. Each step builds on previous outputs.
@@ -286,7 +303,7 @@ scenarios. Training data is for model development only.
 
 In production, inference is typically broken into stages:
 
-#### Job 1: Data Preparation (`05_1_inference_data_prep.py`)
+#### Job 1: Data Preparation (`05.1_inference_data_prep.py`)
 **What it does:**
 - Loads raw inference data (new customers to score)
 - Applies feature engineering (same transformations as training)
@@ -298,7 +315,7 @@ In production, inference is typically broken into stages:
 
 **To Run:**
 ```bash
-python 05_1_inference_data_prep.py
+python 05.1_inference_data_prep.py
 ```
 
 **Output File:**
@@ -310,7 +327,7 @@ inference_data/engineered_inference_data.csv
 └── Scaled and one-hot encoded for model input
 ```
 
-#### Job 2: Generate Predictions (`05_2_inference_predict.py`)
+#### Job 2: Generate Predictions (`05.2_inference_predict.py`)
 **What it does:**
 - Loads the engineered data from Job 1
 - Loads the best trained model from MLflow
@@ -320,7 +337,7 @@ inference_data/engineered_inference_data.csv
 
 **To Run:**
 ```bash
-python 05_2_inference_predict.py
+python 05.2_inference_predict.py
 ```
 
 **Output File:**
@@ -473,7 +490,7 @@ From the instructions above, copy:
 
 Update the following two files with YOUR endpoint and access key:
 
-1. **`05_2_inference_predict.py`** - Find this section:
+1. **`05.2_inference_predict.py`** - Find this section:
    ```python
    MODEL_ENDPOINT = "https://modelservice.ml-dbfc64d1-783.go01-dem.ylcu-atmi.cloudera.site/model"
    ACCESS_KEY = "mbtbh46x9h7wxj4cdkxz9fxl0nzmrefv"

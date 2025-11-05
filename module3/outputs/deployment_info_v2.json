@@ -1,0 +1,11 @@
+{
+  "run_id": "klu9-ofo5-aolf-pzrf",
+  "model_name": "banking_campaign_predictor",
+  "registered_model_id": "xm37-14if-c96j-4l7t",
+  "model_version_id": "04tq-8ys4-8gu2-yu96",
+  "f1_score": 0.6343434343434343,
+  "cml_model_id": "79b0e995-95db-469a-8c93-15820f36124a",
+  "build_id": "06252b80-e9b2-4354-8eca-28e6a930c5b5",
+  "deployment_id": "09696cb2-2eda-487b-90ff-06f87e109e23",
+  "status": "Deployed"
+}

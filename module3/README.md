@@ -1,5 +1,17 @@
 # **Module 3: Proactive MLOps \- The Automated Retraining Loop**
 
+## Prerequisites: Complete Modules 1 & 2
+
+This module assumes you've completed:
+- **Module 1**: Understanding how ML pipelines work (data → training → deployment)
+- **Module 2**: Learning to monitor models for performance degradation
+
+You'll need the trained model and inference data from Module 1.
+
+If you haven't completed these modules yet, [start with Module 1](../module1/README.md).
+
+---
+
 ## **1\. Objective**
 
 In Module 2, we *reacted* to poor model performance (accuracy). This module teaches **proactive MLOps**. We will build an event-driven pipeline that *proactively* detects **data drift** and uses that as a trigger to automatically retrain and deploy a new, smarter model.
