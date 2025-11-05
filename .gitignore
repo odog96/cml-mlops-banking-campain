@@ -115,3 +115,6 @@ img/
 
 # Experiments directory
 .experiments/
+
+# Streamlit cache and config (auto-generated per machine)
+.streamlit/
