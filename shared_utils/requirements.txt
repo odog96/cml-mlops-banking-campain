@@ -7,6 +7,9 @@ scipy>=1.9.0
 scikit-learn>=1.2.0
 xgboost>=1.7.0
 imbalanced-learn>=0.10.0  # For SMOTE
+onnx>=1.2.1  # ONNX model format
+skl2onnx>=1.19.0  # sklearn to ONNX conversion
+onnxruntime>=1.23.0  # ONNX model runtime and validation
 
 # MLflow Experiment Tracking
 # Note: CML tracking server is compatible with MLflow 2.x

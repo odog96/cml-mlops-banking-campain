@@ -1,0 +1,11 @@
+{
+  "run_id": "zszr-3aal-igl8-j2op",
+  "experiment_id": "7kzq-58oo-nf4m-gpgt",
+  "experiment_name": "banking_onnx_retraining_pipeline",
+  "registered_model_name": "BankingCampaignPredictor_ONNX",
+  "model_format": "onnx",
+  "f1_score": 0.6343434343434343,
+  "accuracy": 0.9180810138040281,
+  "training_samples": 44188,
+  "onnx_version": "1.19.1"
+}
