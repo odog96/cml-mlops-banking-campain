@@ -1,138 +1,241 @@
-# Module 3: Proactive MLOps - The Automated Retraining Loop
+# 🏦 Bank Marketing ML Lab - Complete MLOps Journey
 
-## 1. Objective
+## Welcome!
 
-In Module 2, we reacted to poor model performance (accuracy) after we received new labels. This is reactive monitoring, and it's too slow. In the real world, you might not get labels for weeks, by which time a drifting model has already cost you.
+This hands-on lab teaches you the **complete machine learning operations (MLOps) lifecycle** using a real-world bank marketing prediction scenario. You'll build, deploy, monitor, and automate the retraining of a production ML model.
 
-This module teaches proactive MLOps. We will build an event-driven pipeline that proactively detects data drift (changes in the input data) and uses that as a trigger to automatically retrain and deploy a new, smarter model. We will simulate the entire MLOps loop, from detection to deployment.
+---
 
-**The Big Idea:** We're moving from a lagging indicator (bad accuracy) to a leading indicator (bad data).
+## 📚 Lab Structure: 3 Modules
 
-## 2. The MLOps Pipeline We Will Build
+### **Module 1: Complete ML Workflow** 🚀
+**Duration:** 45-90 minutes
 
-We will simulate a 4-step automated pipeline. In a production system, a CML Job's success or failure would automatically trigger the next step. For this lab, we will run the scripts one by one to see the cause-and-effect of each "event."
+[📖 View Module 1](./module1/README.md)
 
-### Job 1: Detect Drift (1_check_drift.py)
+Learn to build an end-to-end ML pipeline from raw data to production inference:
+- **Data Ingestion** → Load bank marketing data into the data lake
+- **Exploratory Analysis** → Understand patterns and trends
+- **Model Training** → Build and compare multiple models with MLflow
+- **Model Deployment** → Deploy your best model as a REST API
+- **Inference Pipeline** → Generate predictions on new customers
 
-**Action:** Simulates new, unlabeled production data with drift (new age patterns, new job categories).
+**What you'll accomplish:** A fully trained, deployed model ready to make predictions.
 
-**Detects:** Uses Evidently AI to compare the new data to our "golden" training set.
+---
 
-**Event:** The job fails intentionally when drift is detected. This "failure" is our trigger!
+### **Module 2: Proactive Monitoring** 📊
+**Duration:** 30-45 minutes
+**Prerequisites:** Complete Module 1
 
-### Job 2: Acquire Labels (2_simulate_labeling_job.py)
+[📖 View Module 2](./module2/README.md)
 
-**Trigger:** "Triggered" by the failure of Job 1.
+Learn to detect when models degrade in production:
+- **Track predictions** over time as new data arrives
+- **Monitor accuracy** across time periods
+- **Detect degradation** automatically when performance drops
+- **Alert** when intervention is needed
 
-**Action:** Simulates the data engineering work of acquiring labels for the new, drifted data. It also simulates "concept drift" by applying new business rules to create the labels.
+**What you'll accomplish:** A monitoring pipeline that catches model problems early.
 
-**Output:** A new labeled dataset: new_labeled_batch_01.csv.
+---
 
-### Job 3: Retrain Model (3_retrain_model.py)
+### **Module 3: Automated Retraining Loop** 🔄
+**Duration:** 60-90 minutes
+**Prerequisites:** Complete Modules 1 & 2
 
-**Trigger:** "Triggered" by the creation of the new labeled data.
+[📖 View Module 3](./module3/README.md)
 
-**Action:** Combines the original training data with the new batch.
+Learn to automate the entire MLOps lifecycle:
+- **Detect drift** in production data using Evidently AI
+- **Acquire labels** for drifted data
+- **Retrain model** on combined historical + new data
+- **Deploy automatically** when performance improves
 
-**Output:** Trains a model_v2 on this combined dataset and logs it to an MLflow experiment, saving the run_id.
+**What you'll accomplish:** A fully automated ML pipeline that improves itself over time.
 
-### Job 4: Register & Deploy (4_register_and_deploy.py)
+---
 
-**Trigger:** "Triggered" by the successful training of model_v2.
+## 📊 Prerequisites: Understanding ML Evaluation Metrics
 
-**Action:** Reads the run_id from the previous step.
+Before you start, familiarize yourself with the metrics you'll be tracking throughout all three modules:
 
-**Output:** Uses the cmlapi client to register the new model, build a runtime, and deploy it as banking_campaign_predictor_v2, completing the MLOps loop.
+[📖 View Presentation: ML Evaluation Metrics](./assets/ML_Evaluation_Metrics_Final.pdf)
 
-## 3. Hands-On Lab Instructions
+**Key metrics you'll encounter:**
+- **F1 Score** - Balance between precision and recall (important for imbalanced datasets)
+- **ROC-AUC** - Model's ability to distinguish between classes at various thresholds
+- **Accuracy** - Overall correctness
+- **Precision** - Of predicted positives, how many were actually correct
+- **Recall** - Of actual positives, how many did we catch
 
-### Prerequisite
+---
 
-Ensure you have the banking_train.csv file in the root of your project.
+## 🎯 Learning Outcomes
 
-### Step 1: Run the Drift Detection Job
+By completing all three modules, you'll understand:
 
-This job acts as our sensor. It checks for drift and fails if it finds it.
+✅ **How production ML systems work**
+- Complete data-to-predictions pipeline
+- Real-world constraints and decisions
 
-- Open a CML Workbench session (e.g., a terminal).
-- Run the first script:
+✅ **ML Lifecycle Management**
+- Experimentation with MLflow
+- Model registry and versioning
+- Deployment strategies
 
-```bash
-python module3/1_check_drift.py
+✅ **Production Monitoring**
+- Tracking model performance over time
+- Detecting accuracy degradation
+- Automated alerting
+
+✅ **Automated MLOps**
+- Trigger-based retraining
+- Drift detection
+- End-to-end automation
+
+✅ **Industry Best Practices**
+- Version control for models
+- Reproducible pipelines
+- Graceful error handling
+
+---
+
+## 🏃 Quick Start
+
+### Step 1: Understand the Business Context
+You're building a model that predicts whether a bank customer will subscribe to a term deposit. This is a **binary classification problem** with real business value.
+
+### Step 2: Review Metrics (5 min)
+Open and review the [ML Evaluation Metrics presentation](./assets/ML_Evaluation_Metrics_Final.pdf) - you'll reference it throughout the lab.
+
+### Step 3: Start with Module 1
+Follow the step-by-step guide in [Module 1 README](./module1/README.md). This is your foundation for everything that follows.
+
+### Step 4: Progress to Module 2 & 3
+Once Module 1 is complete, you'll have the data and trained models needed for Modules 2 and 3.
+
+---
+
+## 📋 Lab Environment Requirements
+
+Before you start, ensure you have:
+- Access to a Cloudera AI workspace (CML project)
+- Python 3.10+ runtime available
+- ~500MB disk space for data and models
+- Terminal/command line access
+- Basic familiarity with Python (helpful but not required)
+
+---
+
+## 🗂️ Project Structure
+
+```
+/home/cdsw/
+├── README_PROJECT_OVERVIEW.md          ← You are here
+├── assets/
+│   └── ML_Evaluation_Metrics_Final.pdf ← Essential reading!
+├── module1/                             ← START HERE
+│   ├── README.md
+│   ├── 01_ingest.py
+│   ├── 02_eda_notebook.ipynb
+│   ├── 03_train_quick.py
+│   ├── 04_deploy.py
+│   ├── 05.1_inference_data_prep.py
+│   ├── 05.2_inference_predict.py
+│   ├── 06_Inference_101.ipynb
+│   └── helpers/                        ← Shared utilities
+├── module2/                             ← AFTER Module 1
+│   ├── README.md
+│   ├── 02_prepare_artificial_data.py
+│   └── 03_monitoring_pipeline.py
+└── module3/                             ← AFTER Module 1 & 2
+    ├── README.md
+    ├── 1_check_drift.py
+    ├── 2_simulate_labeling_job.py
+    ├── 3_retrain_model.py
+    └── 4_register_and_deploy.py
 ```
 
-**Observe the Output:**
+---
 
-- The script will print `!!! DATA DRIFT DETECTED! !!!`.
-- The job will fail (with a `sys.exit(1)`). This is the "event" that would trigger our pipeline.
+## 📌 Important Notes
 
-**Analyze the Report:**
+### Execution Locations
+- **Module 1 & 3 scripts:** Run from the `module1/` or `module3/` directory
+- **Module 2 scripts:** Run from the **PROJECT ROOT** (`/home/cdsw/`) because they reference Module 1 data
 
-- Go to the file browser on the left.
-- Open the `1_drift_report.html` file.
-- Inspect the report. You will see clear "DRIFTED" tags on the age and job features that we simulated.
-
-### Step 2: Run the Label Acquisition Job
-
-This job simulates the (often manual) process of getting new labels for the drifted data.
-
-- In the same terminal, run the second script:
-
+### File Naming
+Note the **period in filenames**: `05.1_inference_data_prep.py` (not `05_1_`)
 ```bash
-python module3/2_simulate_labeling_job.py
+✓ Correct:   python 05.1_inference_data_prep.py
+✗ Wrong:     python 05_1_inference_data_prep.py
 ```
 
-**Observe the Output:**
+### Data Flow
+- **Module 1** creates: training data, trained model, inference data
+- **Module 2** uses: Module 1's inference data to test monitoring
+- **Module 3** uses: Module 1's trained model to demonstrate drift & retraining
 
-- The script will print that it has created `new_labeled_batch_01.csv`.
-- This job finishes successfully, "triggering" the retraining step.
+---
 
-### Step 3: Run the Retraining Job
+## 🆘 Getting Help
 
-This job trains a new model on all the data (old + new) and logs it to MLflow.
+### For Module-Specific Issues
+See the **Troubleshooting** section at the end of each module's README.
 
-- In the same terminal, run the third script:
+### For General Questions
+1. Review the module README carefully - most questions are answered there
+2. Check the code comments in the scripts
+3. Review error messages - they usually indicate what went wrong
+4. Check that you're running from the correct directory
 
-```bash
-python module3/3_retrain_model.py
-```
+### For Setup Issues
+- Verify Python 3.10+ is available: `python --version`
+- Verify required packages: `pip list | grep pandas`
+- Check that data files exist: `ls -la module1/data/`
 
-**Observe the Output:**
+---
 
-- The script will train a new model and log it to an MLflow experiment called `banking_retraining_pipeline`.
-- It saves the model's run_id to `outputs/retrain_run_info.json`.
+## 🎓 What You'll Learn at Each Stage
 
-**Check MLflow (Optional):**
+### By end of Module 1:
+- How data flows through an ML pipeline
+- How to train and compare models
+- How to deploy models as API endpoints
+- How to generate predictions in production
 
-- Go to the MLflow UI.
-- You will see the new experiment and the `retrain_on_drift_v2` run with its F1 score.
+### By end of Module 2:
+- How to monitor model performance over time
+- How to detect accuracy degradation
+- How to identify when models need retraining
+- How to set up automated alerts
 
-### Step 4: Run the Register & Deploy Job
+### By end of Module 3:
+- How to detect data drift (changes in input data)
+- How to automatically trigger retraining
+- How to deploy improvements without manual intervention
+- How to build self-improving systems
 
-This is the final step. It takes the newly trained model from MLflow and deploys it using the CML API.
+---
 
-- In the same terminal, run the final script:
+## 🚀 Next Steps
 
-```bash
-python module3/4_register_and_deploy.py
-```
+**Ready to start?** 👇
 
-**Observe the Output:**
+[**→ Go to Module 1**](./module1/README.md)
 
-- This script will run for several minutes. It is the most complex step.
-- It will register the model in the CML Model Registry.
-- It will create a model build (compiling the runtime).
-- It will wait for the build to complete.
-- Once built, it will deploy the model.
+---
 
-## 4. Final Result & Verification
+## 📚 Additional Resources
 
-You have successfully automated the entire MLOps loop!
+- **Cloudera AI Documentation:** https://docs.cloudera.com/cml/
+- **MLflow Documentation:** https://mlflow.org/docs/latest/
+- **Evidently AI (used in Module 3):** https://docs.evidentlyai.com/
+- **Bank Marketing Dataset:** https://archive.ics.uci.edu/ml/datasets/Bank+Marketing
 
-- Go to the Models tab in your CML project.
-- You will see your new model: `banking_campaign_predictor_v2`.
-- Click on it. You will see that it has been Built and Deployed.
+---
 
-**You now have a brand new, smarter model serving as an API endpoint, all triggered by the initial data drift.**
+**Happy Learning!** 🎉
 
-Congratulations! You've completed the proactive MLOps module.
+This lab is designed to give you real-world experience with the complete MLOps lifecycle. Enjoy the journey!
